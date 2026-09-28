@@ -103,6 +103,22 @@ const [paidAmount, setPaidAmount] =
  const [customerName, setCustomerName] =
   useState('')
 
+
+const [customerTitle, setCustomerTitle] =
+  useState<'Anh' | 'Chị'>('Anh')
+
+const [customerSource, setCustomerSource] =
+  useState('Website')
+
+const [customerNote, setCustomerNote] =
+  useState('')
+
+const [createdOrderCode, setCreatedOrderCode] =
+  useState('')
+
+const [createdOrderDate, setCreatedOrderDate] =
+  useState('')
+
   const isEdit = mode === 'edit'
 
 const isDuplicate =
@@ -408,12 +424,16 @@ const loadOrder = async (id: string) => {
   //=========================
   // CUSTOMER
   //=========================
-
   setCustomerName(data.customers?.full_name || '')
+  setCustomerTitle(data.customers?.customer_title === 'Chị' ? 'Chị' : 'Anh')
+  setCustomerSource(data.customers?.customer_source || 'Website')
+  setCustomerNote(data.customers?.customer_note || '')
   setCustomerPhone(data.customers?.phone || '')
   setCustomerAddress(data.customers?.address || '')
-    setStreetAddress(data.customers?.address || '')
-setCustomerCode(data.customers?.customer_display_code || '')
+  setStreetAddress(data.customers?.address || '')
+  setCustomerCode(data.customers?.customer_display_code || '')
+  setCreatedOrderCode(data.order_code || '')
+  setCreatedOrderDate(data.created_at ? new Date(data.created_at).toLocaleDateString('vi-VN') : '')
 
   //=========================
   // PAYMENT
@@ -592,6 +612,18 @@ const total =
     data.customer_display_code || ''
   )
 
+  setCustomerTitle(
+    data.customer_title === 'Chị' ? 'Chị' : 'Anh'
+  )
+
+  setCustomerSource(
+    data.customer_source || 'Website'
+  )
+
+  setCustomerNote(
+    data.customer_note || ''
+  )
+
   setCustomerName(
     data.full_name || ''
   )
@@ -641,6 +673,22 @@ let customerId: string | null = null
       if (existingCustomer) {
         customerId =
           existingCustomer.id
+
+        const { error: customerUpdateError } =
+          await supabase
+            .from('customers')
+            .update({
+              customer_title: customerTitle,
+              customer_source: customerSource,
+              customer_note: customerNote,
+              full_name: customerName,
+              address: customerAddress,
+            })
+            .eq('id', existingCustomer.id)
+
+        if (customerUpdateError) {
+          console.error('CUSTOMER UPDATE ERROR', customerUpdateError)
+        }
       } else {
        
         const lastName =
@@ -682,6 +730,12 @@ const customerCode =
   customer_display_code: customerCode,
 
   full_name: customerName,
+
+  customer_title: customerTitle,
+
+  customer_source: customerSource,
+
+  customer_note: customerNote,
 
   phone: customerPhone,
 
@@ -874,6 +928,9 @@ product_name:
           )
         }
       }
+
+      setCreatedOrderCode(orderCode)
+      setCreatedOrderDate(now.toLocaleDateString('vi-VN'))
 
       toast.success(
         'Tạo đơn hàng thành công'
@@ -1586,46 +1643,29 @@ sm:p-3
 
 )}
 
-<div className="relative mt-3">
+<div className="mt-3 grid grid-cols-[92px_1fr] gap-2">
+  <div>
+    <label className="mb-1 block text-[11px] font-medium text-slate-400">Danh xưng</label>
+    <select
+      value={customerTitle}
+      onChange={(e) => setCustomerTitle(e.target.value as 'Anh' | 'Chị')}
+      className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white outline-none focus:border-cyan-500"
+    >
+      <option value="Anh">Anh</option>
+      <option value="Chị">Chị</option>
+    </select>
+  </div>
 
-  <User
-    size={15}
-    className="
-      absolute
-      left-3
-      top-1/2
-      -translate-y-1/2
-      text-slate-400
-    "
-  />
-
-  <input
-    placeholder="Tên khách hàng"
-    value={customerName}
-    onChange={(e) =>
-      setCustomerName(e.target.value.toUpperCase())
-    }
-    className="uppercase 
-      mt-1.5
-      w-full
-      rounded-md
-      border
-      border-slate-700
-      bg-slate-900
-      min-h-9
-      py-1.5
-      pl-10
-      pr-3
-      text-sm
-      sm:mt-2
-      sm:min-h-11
-      sm:py-2.5
-      sm:pl-12
-      sm:pr-4
-      sm:text-sm
-    "
-  />
-
+  <div className="relative">
+    <label className="mb-1 block text-[11px] font-medium text-slate-400">Tên khách hàng</label>
+    <User size={15} className="absolute left-4 top-[39px] -translate-y-1/2 text-slate-400" />
+    <input
+      placeholder="Tên khách hàng"
+      value={customerName}
+      onChange={(e) => setCustomerName(e.target.value.toUpperCase())}
+      className="uppercase w-full rounded-md border border-slate-700 bg-slate-900 py-3 pl-12 pr-4 text-sm"
+    />
+  </div>
 </div>
 
              <div className="relative">
@@ -1668,6 +1708,31 @@ sm:p-3
     "
   />
 
+</div>
+
+<div className="mt-3">
+  <label className="mb-1 block text-[11px] font-medium text-slate-400">Nguồn khách hàng</label>
+  <select
+    value={customerSource}
+    onChange={(e) => setCustomerSource(e.target.value)}
+    className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white outline-none focus:border-cyan-500"
+  >
+    <option value="Facebook">Facebook</option>
+    <option value="TikTok">TikTok</option>
+    <option value="Zalo">Zalo</option>
+    <option value="Website">Website</option>
+  </select>
+</div>
+
+<div className="mt-3 mb-3">
+  <label className="mb-1 block text-[11px] font-medium text-slate-400">Take note</label>
+  <textarea
+    value={customerNote}
+    onChange={(e) => setCustomerNote(e.target.value)}
+    placeholder="Ghi chú về khách hàng..."
+    rows={2}
+    className="w-full resize-none rounded-md border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-500"
+  />
 </div>
 
               {/* ADDRESS */}
@@ -2230,23 +2295,27 @@ hover:bg-cyan-600
               {/* ORDER INFO */}
 
 <div
-  className="invoice-order-info mt-3 border-y border-gray-300 py-2.5 text-[11px] leading-4"
+  className="invoice-order-info mt-3 border-y border-gray-300 py-2.5 text-[11px] leading-5"
   style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
 >
-
   <div>
-    <strong>Mã đơn:</strong> DH{Date.now()}
+    <strong>Mã đơn:</strong>{' '}
+    <span style={{ fontFamily: '"Pixel Operator", "Pixeloid Sans", "Silkscreen", "Press Start 2P", "Courier New", monospace', fontSize: '10px', letterSpacing: '0.2px', color: '#111827' }}>
+      {createdOrderCode || '-'}
+    </span>
   </div>
-
   <div>
     <strong>Ngày:</strong>{' '}
-    {new Date().toLocaleDateString('vi-VN')}
+    <span style={{ fontFamily: '"Pixel Operator", "Pixeloid Sans", "Silkscreen", "Press Start 2P", "Courier New", monospace', fontSize: '10px', letterSpacing: '0.2px', color: '#111827' }}>
+      {createdOrderDate || '-'}
+    </span>
   </div>
-
   <div>
-      <strong>Mã KH:</strong> {customerCode}
-    </div>
-
+    <strong>Mã KH:</strong>{' '}
+    <span style={{ fontFamily: '"Pixel Operator", "Pixeloid Sans", "Silkscreen", "Press Start 2P", "Courier New", monospace', fontSize: '10px', letterSpacing: '0.2px', color: '#111827' }}>
+      {customerCode || '-'}
+    </span>
+  </div>
 </div>
 
 {/* CUSTOMER INFO */}
@@ -2255,44 +2324,20 @@ hover:bg-cyan-600
   className="invoice-customer mt-3 border-b border-gray-300 pb-3 text-[11px] leading-4"
   style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
 >
-  <div className="mb-1 font-bold border-b pb-1">
+  <div className="mb-1 border-b pb-1 font-bold">
     THÔNG TIN KHÁCH HÀNG
   </div>
 
-  <div className="invoice-customer-grid grid grid-cols-2 gap-x-6">
-
-   <div>
-      <strong>Khách Hàng:</strong> {customerName}
-    </div>
-
-    <div className="invoice-address mt-1">
-  <strong>Địa chỉ:</strong> {customerAddress}
-</div>
-
-     <div>
-      <strong>SĐT:</strong> {customerPhone}
-    </div>
-
-
-    <div>
-      <strong>ĐVVC:</strong> {shippingProvider}
-    </div>
-
-
-    <div>
-      <strong>Thanh Toán:</strong> {paymentMethod}
-    </div>
-
-   
-
-    <div>
-      <strong>Đã Thanh Toán:</strong>{' '}
-      {paidAmount.toLocaleString('vi-VN')} đ
-    </div>
-
+  <div className="invoice-customer-grid grid grid-cols-2 gap-x-6 gap-y-1.5">
+    <div><strong>Khách hàng:</strong> {customerTitle} {customerName || '-'}</div>
+    <div><strong>SĐT:</strong> {customerPhone || '-'}</div>
+    <div><strong>Nguồn:</strong> {customerSource || '-'}</div>
+    <div><strong>ĐVVC:</strong> {shippingProvider || '-'}</div>
+    <div><strong>Thanh toán:</strong> {paymentMethod || '-'}</div>
+    <div><strong>Đã thanh toán:</strong> {paidAmount.toLocaleString('vi-VN')} đ</div>
+    <div style={{ gridColumn: '1 / -1' }}><strong>Địa chỉ giao hàng:</strong> {customerAddress || '-'}</div>
+    <div style={{ gridColumn: '1 / -1' }}><strong>Note:</strong> {customerNote || '-'}</div>
   </div>
-
-
 </div>
 
 {/* PRODUCTS */}
@@ -2425,35 +2470,44 @@ hover:bg-cyan-600
   className="invoice-policy mt-3 border-b border-gray-300 pb-3 text-[11px] leading-4"
   style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
 >
-
-  <div className="mb-2 text-center text-[11px] font-bold">
-    CHÍNH SÁCH KIỂM TRA & ĐỔI TRẢ
+  <div className="mb-2 text-[11px] font-bold">
+    CHÍNH SÁCH ĐỔI TRẢ
   </div>
 
-  <p className="mb-1 font-semibold">
-    Hỗ trợ đổi trả trong vòng 15 ngày miễn phí nếu:
+  <p className="mb-1">
+    <strong>Thời gian đổi trả:</strong> Trong vòng 15 ngày kể từ ngày ĐVVC xác nhận đơn hàng giao thành công.
   </p>
 
+  <p className="mb-1 font-semibold">Hỗ trợ đổi:</p>
   <ul className="mb-2 ml-5 list-disc leading-5">
-    <li>SHOP giao sai mẫu, sai màu.</li>
-    <li>Sản phẩm bị lỗi do nhà sản xuất.</li>
-    <li>Sản phẩm hư hỏng trong quá trình vận chuyển.</li>
+    <li>Lỗi sản xuất, lỗi kỹ thuật hoặc bể vỡ do vận chuyển.</li>
+    <li>Sản phẩm chưa qua sử dụng, còn đầy đủ hộp, bao bì và phụ kiện.</li>
+    <li>Khách hàng cung cấp hình ảnh/video khi phát hiện vấn đề.</li>
   </ul>
 
-  <p className="mb-1 font-semibold text-red-600">
-    Không áp dụng đổi trả:
-  </p>
-
-  <ul className="ml-5 list-disc leading-5">
-    <li>Sản phẩm sử dụng sai cách.</li>
-    <li>Khách đổi ý sau khi nhận đúng sản phẩm.</li>
-    <li>Sản phẩm đã qua sử dụng hoặc bị tác động.</li>
+  <p className="mb-1 font-semibold">Không hỗ trợ đổi:</p>
+  <ul className="mb-2 ml-5 list-disc leading-5">
+    <li>Hư hỏng do sử dụng, lắp đặt hoặc bảo quản không đúng hướng dẫn.</li>
+    <li>Bể, nứt, móp hoặc hao mòn do khách hàng.</li>
+    <li>Thiếu hộp, bao bì hoặc phụ kiện làm ảnh hưởng việc kiểm tra và đổi hàng.</li>
   </ul>
 
-  <div className="mt-3 border-l-2 border-gray-400 pl-3 text-[11px] text-gray-700">
-    Liên hệ <strong>079 937 9179</strong> để được hỗ trợ về vận đơn và thông tin đơn hàng
+  <div className="mt-2">
+    <strong>Xem chi tiết chính sách:</strong>{' '}
+    <a
+      href="https://olivelivingvn.com/chinh-sach-doi-hang"
+      target="_blank"
+      rel="noreferrer"
+      style={{
+        color: '#4B5563',
+        textDecoration: 'none',
+        fontStyle: 'italic',
+        fontWeight: 400,
+      }}
+    >
+      Olivelivingvn.com/chinh-sach-doi-hang
+    </a>
   </div>
-
 </div>
 
               </div>
