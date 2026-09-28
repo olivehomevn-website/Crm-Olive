@@ -4,6 +4,7 @@ import Image from "next/image"
 import { useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   Search,
@@ -73,11 +74,16 @@ export function CreateOrderClient({
   orderId,
 }: CreateOrderClientProps) {
 
+  const router = useRouter()
+
   const [paymentMethod, setPaymentMethod] =
   useState('COD')
 
 const [shippingProvider, setShippingProvider] =
   useState('GHN')
+
+const [shippingMethod, setShippingMethod] =
+  useState('standard')
 
 const [paidAmount, setPaidAmount] =
   useState(0)
@@ -449,6 +455,10 @@ const loadOrder = async (id: string) => {
     data.shipping_provider || 'GHN'
   )
 
+  setShippingMethod(
+    data.shipping_method || 'standard'
+  )
+
   setDiscountValue(data.discount || 0)
 
   setDiscountType('amount')
@@ -640,6 +650,129 @@ const total =
 }
 
 
+    const updateOrder = async () => {
+      if (!orderId) {
+        toast.error('Không tìm thấy mã đơn hàng')
+        return
+      }
+
+      if (!cart.length) {
+        toast.error('Vui lòng thêm sản phẩm')
+        return
+      }
+
+      try {
+        const { data: currentOrder, error: currentOrderError } =
+          await supabase
+            .from('orders')
+            .select('id, order_code, customer_id, created_at')
+            .eq('id', orderId)
+            .single()
+
+        if (currentOrderError || !currentOrder) {
+          toast.error(
+            currentOrderError?.message || 'Không tìm thấy đơn hàng'
+          )
+          return
+        }
+
+        if (currentOrder.customer_id) {
+          const { error: customerError } = await supabase
+            .from('customers')
+            .update({
+              customer_title: customerTitle,
+              customer_source: customerSource,
+              customer_note: customerNote,
+              full_name: customerName,
+              phone: customerPhone,
+              address: customerAddress,
+            })
+            .eq('id', currentOrder.customer_id)
+
+          if (customerError) {
+            console.error('CUSTOMER UPDATE ERROR', customerError)
+            toast.error(customerError.message)
+            return
+          }
+        }
+
+        const paid = Number(paidAmount || 0)
+        const remaining = Math.max(Number(total || 0) - paid, 0)
+
+        const { error: orderError } = await supabase
+          .from('orders')
+          .update({
+            customer_name: customerName,
+            subtotal,
+            discount: discountAmount,
+            shipping_fee: shippingFee,
+            total_amount: total,
+            paid_amount: paid,
+            remaining_amount: remaining,
+            payment_status:
+              paid === 0
+                ? 'unpaid'
+                : paid >= total
+                ? 'paid'
+                : 'partial',
+            payment_method: paymentMethod,
+            shipping_provider: shippingProvider,
+            shipping_method: shippingMethod,
+          })
+          .eq('id', orderId)
+
+        if (orderError) {
+          toast.error(orderError.message)
+          return
+        }
+
+        const { error: deleteItemsError } = await supabase
+          .from('order_items')
+          .delete()
+          .eq('order_id', orderId)
+
+        if (deleteItemsError) {
+          toast.error(deleteItemsError.message)
+          return
+        }
+
+        const { error: itemError } = await supabase
+          .from('order_items')
+          .insert(
+            cart.map((item) => ({
+              customer_name: customerName,
+              order_id: orderId,
+              product_id: item.product.id,
+              sku: item.product.sku,
+              product_name: item.product.name,
+              color: item.product.color,
+              quantity: item.quantity,
+              sale_price: item.price,
+              subtotal: item.price * item.quantity,
+            }))
+          )
+
+        if (itemError) {
+          toast.error(itemError.message)
+          return
+        }
+
+        setCreatedOrderCode(currentOrder.order_code || '')
+        setCreatedOrderDate(
+          currentOrder.created_at
+            ? new Date(currentOrder.created_at).toLocaleDateString('vi-VN')
+            : new Date().toLocaleDateString('vi-VN')
+        )
+
+        toast.success('Cập nhật đơn hàng thành công')
+        setShowPrint(true)
+      } catch (error: any) {
+        console.error('UPDATE ORDER ERROR', error)
+        toast.error(error?.message || 'Không thể cập nhật đơn hàng')
+      }
+    }
+
+
     const createOrder = async () => {
 
       console.log('CREATE ORDER')
@@ -826,6 +959,12 @@ const {
 
       payment_method:
         paymentMethod,
+
+      shipping_provider:
+        shippingProvider,
+
+      shipping_method:
+        shippingMethod,
     },
   ])
 
@@ -942,8 +1081,7 @@ product_name:
 
     return (
 
-     <>
-
+  <PageShell title="Tạo đơn hàng mới">
 
     <div className="grid gap-4 lg:grid-cols-12 lg:gap-6">
 
@@ -953,83 +1091,99 @@ product_name:
 
             <div >
 
-              <div className="mb-4 flex flex-row flex-wrap gap-1.5 sm:flex-row sm:gap-2 sm:gap-3">
+              <div className="mb-3 flex w-full items-center gap-2 sm:mb-4 sm:gap-3">
 
-                <div className="relative flex-1">
+  {/* TÌM KIẾM */}
+  <div className="relative min-w-0 flex-1">
 
-  <Search
-    size={15}
-    className="
-      absolute
-      left-3
-      top-1/2
-      -translate-y-1/2
-      text-slate-400
-    "
-  />
+    <Search
+      size={16}
+      className="
+        absolute
+        left-3
+        top-1/2
+        -translate-y-1/2
+        text-slate-400
+      "
+    />
 
-  <input
-    placeholder="Tìm SKU hoặc tên sản phẩm..."
-    value={search}
+    <input
+      placeholder="Tìm SKU hoặc tên sản phẩm..."
+      value={search}
+      onChange={(e) =>
+        setSearch(e.target.value)
+      }
+      className="
+        h-11
+        w-full
+        rounded-xl
+        border
+        border-slate-700
+        bg-slate-900
+        py-2.5
+        pl-10
+        pr-3
+        text-sm
+        text-white
+        outline-none
+        placeholder:text-slate-500
+        focus:border-cyan-500
+        focus:ring-1
+        focus:ring-cyan-500/30
+        sm:h-12
+        sm:pl-11
+      "
+    />
+
+  </div>
+
+  {/* TẤT CẢ SẢN PHẨM */}
+  <select
+    value={selectedProduct}
     onChange={(e) =>
-      setSearch(e.target.value)
+      setSelectedProduct(e.target.value)
     }
     className="
-      w-full
-      rounded-md
+      h-11
+      w-[110px]
+      shrink-0
+      rounded-xl
       border
       border-slate-700
       bg-slate-900
-      min-h-11
-      py-2.5
-      pl-12
-      pr-4
-      text-base
+      px-2.5
+      text-[12px]
+      font-medium
+      text-white
+      outline-none
+      focus:border-cyan-500
+      sm:h-12
+      sm:w-64
+      sm:px-3
       sm:text-sm
     "
-  />
+  >
+    <option value="all">
+      Tất cả SP
+    </option>
+
+    {[
+      ...new Set(
+        productsData.map(
+          (x) => x.name
+        )
+      ),
+    ].map((name) => (
+      <option
+        key={name}
+        value={name}
+      >
+        {name}
+      </option>
+    ))}
+  </select>
 
 </div>
-
-                <select
-                  value={selectedProduct}
-                  onChange={(e) =>
-                    setSelectedProduct(
-                      e.target.value
-                    )
-                  }
-                  className="
-      w-full
-      sm:w-64
-      rounded-md
-      border
-      border-slate-700
-      bg-slate-900
-      px-3
-      py-3
-    "
-                >
-                  <option value="all">
-                    Tất cả sản phẩm
-                  </option>
-
-                  {[
-                    ...new Set(
-                      productsData.map(
-                        (x) => x.name
-                      )
-                    ),
-                  ].map((name) => (
-                    <option
-                      key={name}
-                      value={name}
-                    >
-                      {name}
-                    </option>
-                  ))}
-                </select>
-
-              </div>
 
               <div className="mb-2 flex items-center justify-between gap-2 sm:mb-4 sm:flex-row">
 
@@ -1041,7 +1195,7 @@ product_name:
 
   <button
     onClick={() => setStockFilter('all')}
-    className={`rounded-full px-2.5 py-1 text-[10px] font-medium sm:px-4 sm:py-2 sm:text-sm font-medium ${
+    className={`min-h-9 rounded-full px-3 py-1.5 text-[10px] font-medium sm:px-4 sm:py-2 sm:text-sm ${
       stockFilter === 'all'
         ? 'bg-cyan-500 text-white'
         : 'bg-slate-800 text-slate-300'
@@ -1052,7 +1206,7 @@ product_name:
 
   <button
     onClick={() => setStockFilter('active')}
-    className={`rounded-full px-2.5 py-1 text-[10px] font-medium sm:px-4 sm:py-2 sm:text-sm font-medium ${
+    className={`min-h-9 rounded-full px-3 py-1.5 text-[10px] font-medium sm:px-4 sm:py-2 sm:text-sm ${
       stockFilter === 'active'
         ? 'bg-green-500 text-white'
         : 'bg-slate-800 text-slate-300'
@@ -1063,7 +1217,7 @@ product_name:
 
   <button
     onClick={() => setStockFilter('low')}
-    className={`rounded-full px-2.5 py-1 text-[10px] font-medium sm:px-4 sm:py-2 sm:text-sm font-medium ${
+    className={`min-h-9 rounded-full px-3 py-1.5 text-[10px] font-medium sm:px-4 sm:py-2 sm:text-sm ${
       stockFilter === 'low'
         ? 'bg-yellow-500 text-black'
         : 'bg-slate-800 text-slate-300'
@@ -1074,7 +1228,7 @@ product_name:
 
   <button
     onClick={() => setStockFilter('out')}
-    className={`rounded-full px-2.5 py-1 text-[10px] font-medium sm:px-4 sm:py-2 sm:text-sm font-medium ${
+    className={`min-h-9 rounded-full px-3 py-1.5 text-[10px] font-medium sm:px-4 sm:py-2 sm:text-sm ${
       stockFilter === 'out'
         ? 'bg-red-500 text-white'
         : 'bg-slate-800 text-slate-300'
@@ -1093,7 +1247,7 @@ product_name:
        <div
   className="
     -mt-2
-    h-[218px] min-h-0 max-h-[218px]
+    h-[260px] min-h-0 max-h-[260px]
     overflow-y-auto
     sm:h-[300px]
     sm:max-h-[300px]
@@ -1126,7 +1280,7 @@ product_name:
       text-slate-400
     "
   >
-    <div className="col-span-6">
+    <div className="col-span-5">
       Sản phẩm
     </div>
 
@@ -1138,7 +1292,7 @@ product_name:
       SL
     </div>
 
-    <div className="col-span-1 text-center">
+    <div className="col-span-2 text-center">
       Thêm SP
     </div>
   </div>
@@ -1149,129 +1303,197 @@ product_name:
     ).map((item) => (
 
   <div
-  
-  key={item.id}
-  className="
-    grid
-    grid-cols-12
-    items-center
-    gap-1
-    border-b
-    border-slate-800
-    px-2
-    py-1.5
-    sm:gap-0
-    sm:px-4
-    sm:items-center
-    sm:gap-0
-    sm:px-4
-    hover:bg-slate-900/40
-  "
->
+    key={item.id}
+    className="
+      grid
+      grid-cols-[minmax(0,1fr)_auto]
+      items-center
+      gap-2
+      border-b
+      border-slate-800
+      px-2.5
+      py-2
+      hover:bg-slate-900/40
+      sm:grid-cols-12
+      sm:gap-0
+      sm:px-4
+      sm:py-2.5
+    "
+  >
+    {/* PRODUCT */}
+    <div className="min-w-0 flex items-center gap-2.5 sm:col-span-5 sm:gap-4">
+      <img
+        src={item.image_url || '/placeholder-product.png'}
+        className="
+          h-10
+          w-10
+          shrink-0
+          rounded-lg
+          object-cover
+          sm:h-14
+          sm:w-14
+        "
+        alt=""
+      />
 
-   <div className="col-span-7 flex min-w-0 items-center gap-2 sm:col-span-6 sm:gap-4">
+      <div className="min-w-0">
+        <div className="break-words text-[12px] font-semibold leading-4 sm:text-base sm:leading-5">
+          {getBaseProductName(item.name)}
+        </div>
 
-  <img
-  src={
-   item.image_url ||
-    '/placeholder-product.png'
-  }
-  className="
-    h-8
-    w-8
-    shrink-0
-    rounded-md
-    sm:h-14
-    sm:w-14
-    object-cover
-  "
-/>
+        <div className="mt-1">
+          {Number(item.stock_quantity) > 5 && (
+            <span className="inline-flex rounded-full bg-green-500/15 px-1.5 py-0.5 text-[9px] text-green-400 sm:px-2 sm:py-1 sm:text-[10px]">
+              Còn hàng
+            </span>
+          )}
 
-<div>
+          {Number(item.stock_quantity) > 0 &&
+            Number(item.stock_quantity) <= 5 && (
+              <span className="inline-flex rounded-full bg-yellow-500/15 px-1.5 py-0.5 text-[9px] text-yellow-400 sm:px-2 sm:py-1 sm:text-[10px]">
+                Sắp hết
+              </span>
+            )}
 
-  <div className="truncate text-[11px] font-semibold leading-4 sm:text-base">
-    {
-      getBaseProductName(item.name)
-    }
-  </div>
+          {Number(item.stock_quantity) <= 0 && (
+            <span className="inline-flex rounded-full bg-red-500/15 px-1.5 py-0.5 text-[9px] text-red-400 sm:px-2 sm:py-1 sm:text-[10px]">
+              Hết hàng
+            </span>
+          )}
+        </div>
 
-  <div className="mt-0.5">
-
-  {Number(item.stock_quantity) > 5 && (
-    <span className="rounded-full bg-green-500/15 px-1.5 py-0.5 text-[9px] text-green-400 sm:px-2 sm:py-1 sm:text-[10px]">
-      Còn hàng
-    </span>
-  )}
-
-  {Number(item.stock_quantity) > 0 &&
-   Number(item.stock_quantity) <= 5 && (
-    <span className="rounded-full bg-yellow-500/15 px-1.5 py-0.5 text-[9px] text-yellow-400 sm:px-2 sm:py-1 sm:text-[10px]">
-      Sắp hết
-    </span>
-  )}
-
-  {Number(item.stock_quantity) <= 0 && (
-    <span className="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[9px] text-red-400 sm:px-2 sm:py-1 sm:text-[10px]">
-      Hết hàng
-    </span>
-  )}
-
-</div>
-
-  <div className="truncate text-[8px] leading-3 text-slate-500 sm:text-sm sm:text-slate-400">
-    {item.sku}
-  </div>
-
-</div>
-
-</div>
-
-    <div className="col-span-3 pl-0 text-right text-[10px] font-semibold text-cyan-400 sm:col-span-3 sm:text-center sm:text-[12px]">
-      {Number(item.sale_price).toLocaleString('vi-VN')} đ
+        <div className="mt-0.5 truncate text-[8px] leading-3 text-slate-500 sm:text-sm sm:text-slate-400">
+          {item.sku}
+        </div>
+      </div>
     </div>
 
-    <div className="hidden sm:col-span-2 sm:flex sm:items-center sm:justify-center">
+    {/* MOBILE: price + actions stay together with guaranteed spacing.
+        DESKTOP: wrapper becomes grid contents so the desktop columns remain. */}
+    <div className="flex shrink-0 items-center justify-end gap-1.5 sm:contents">
+      {/* PRICE */}
+      <div
+        className="
+          min-w-[78px]
+          whitespace-nowrap
+          text-right
+          text-[11px]
+          font-extrabold
+          leading-5
+          text-cyan-400
+          sm:col-span-3
+          sm:min-w-0
+          sm:pl-0
+          sm:text-center
+          sm:text-[12px]
+        "
+      >
+        {Number(item.sale_price).toLocaleString('vi-VN')} đ
+      </div>
 
-  <span
-    className="
-      rounded-full
-      bg-cyan-500/20
-      border
-      border-cyan-500/40
-      px-2
-      py-0.5
-      text-[10px]
-      font-bold
-      text-cyan-300
-    "
-  >
-    {item.stock_quantity}
-  </span>
+      {/* STOCK - desktop only */}
+      <div className="hidden sm:col-span-2 sm:flex sm:items-center sm:justify-center">
+        <span
+          className="
+            rounded-full
+            border
+            border-cyan-500/40
+            bg-cyan-500/20
+            px-2
+            py-0.5
+            text-[10px]
+            font-bold
+            text-cyan-300
+          "
+        >
+          {item.stock_quantity}
+        </span>
+      </div>
 
-</div>
+      {/* ACTIONS */}
+      <div className="flex w-full shrink-0 items-center justify-end gap-1.5 sm:col-span-2 sm:justify-end">
+        {/* NHẬP KHO NHANH */}
+        {Number(item.stock_quantity) <= 5 ? (
+          <button
+            type="button"
+            onClick={() => {
+              router.push(
+                `/kho-hang/nhap-kho?productId=${encodeURIComponent(
+                  item.id
+                )}&sku=${encodeURIComponent(item.sku || '')}`
+              )
+            }}
+            className="
+              flex
+              h-9
+              min-w-[42px]
+              shrink-0
+              items-center
+              justify-center
+              rounded-lg
+              border
+              border-yellow-500/40
+              bg-yellow-500/10
+              px-2
+              text-[9px]
+              font-bold
+              text-yellow-400
+              transition
+              hover:bg-yellow-500/20
+              active:scale-95
+              sm:h-8
+              sm:min-w-0
+              sm:px-2
+              sm:text-[10px]
+            "
+            title="Nhập kho nhanh"
+            aria-label={`Nhập kho ${item.name || item.sku || ''}`}
+          >
+            <span className="sm:hidden">Nhập</span>
+            <span className="hidden sm:inline">Nhập kho</span>
+          </button>
+        ) : (
+          <span
+            aria-hidden="true"
+            className="hidden h-8 min-w-[68px] shrink-0 sm:block"
+          />
+        )}
 
-<div className="col-span-2 flex justify-end sm:col-span-1 sm:justify-center">
-
-  <button
-    onClick={() => addToCart(item)}
-    className="
-      h-8
-      w-8
-      rounded-md
-      bg-cyan-500
-      text-sm
-      text-white
-      hover:bg-cyan-400
-    "
-  >
-    +
-  </button>
-
-</div>
- 
-
+        {/* THÊM SẢN PHẨM */}
+        <button
+          type="button"
+          onClick={() => addToCart(item)}
+          disabled={Number(item.stock_quantity) <= 0}
+          className="
+            flex
+            h-9
+            w-9
+            shrink-0
+            items-center
+            justify-center
+            rounded-lg
+            bg-cyan-500
+            text-base
+            font-bold
+            text-white
+            transition
+            hover:bg-cyan-400
+            active:scale-95
+            disabled:cursor-not-allowed
+            disabled:opacity-40
+            sm:h-9
+            sm:w-9
+            sm:rounded-lg
+            sm:text-sm
+          "
+          title="Thêm vào giỏ"
+          aria-label={`Thêm ${item.name || item.sku || ''} vào giỏ`}
+        >
+          +
+        </button>
+      </div>
+    </div>
   </div>
-
 ))}
 </div>
 
@@ -1389,28 +1611,37 @@ sm:p-3
           />
 
           {/* TÊN + SKU */}
-          <div className="min-w-0 flex-1">
-            <div className="
-              truncate
-              text-[10px]
-              font-semibold
-              leading-4
-              sm:text-base
-            ">
-              {getBaseProductName(item.product.name)}
-            </div>
+<div className="min-w-0 flex-1">
 
-            <div className="
-              truncate
-              text-[8px]
-              leading-3
-              text-slate-500
-              sm:text-xs
-              sm:text-slate-400
-            ">
-              {item.product.sku}
-            </div>
-          </div>
+  <div
+    className="
+      break-words
+      text-[12px]
+      font-bold
+      leading-[15px]
+      text-white
+      sm:text-base
+      sm:leading-5
+    "
+  >
+    {getBaseProductName(item.product.name)}
+  </div>
+
+  <div
+    className="
+      mt-0.5
+      break-all
+      text-[8px]
+      leading-3
+      text-slate-500
+      sm:text-xs
+      sm:text-slate-400
+    "
+  >
+    {item.product.sku}
+  </div>
+
+</div>
 
           {/* MÀU */}
           {item.product.color && (
@@ -1431,16 +1662,19 @@ sm:p-3
           )}
 
           {/* GIÁ */}
-          <span className="
-            shrink-0
-            whitespace-nowrap
-            text-[9px]
-            font-bold
-            text-cyan-400
-            sm:text-base
-          ">
-            {item.price.toLocaleString('vi-VN')} đ
-          </span>
+<span
+  className="
+    shrink-0
+    whitespace-nowrap
+    text-[14px]
+    font-bold
+    leading-5
+    text-cyan-400
+    sm:text-base
+  "
+>
+  {item.price.toLocaleString('vi-VN')} đ
+</span>
 
           {/* SỐ LƯỢNG */}
           <div className="flex shrink-0 items-center gap-0.5">
@@ -1452,15 +1686,18 @@ sm:p-3
               aria-label="Giảm số lượng"
               className="
                 flex
-                h-5
-                w-5
+                h-8
+                w-8
+                shrink-0
                 items-center
                 justify-center
-                rounded
+                rounded-md
                 bg-slate-700
-                text-[9px]
+                text-sm
                 font-bold
                 leading-none
+                transition
+                active:scale-95
                 sm:h-8
                 sm:w-8
                 sm:rounded-md
@@ -1471,9 +1708,9 @@ sm:p-3
             </button>
 
             <span className="
-              min-w-[12px]
+              min-w-[20px]
               text-center
-              text-[9px]
+              text-[12px]
               font-semibold
               tabular-nums
               sm:min-w-[24px]
@@ -1490,15 +1727,18 @@ sm:p-3
               aria-label="Tăng số lượng"
               className="
                 flex
-                h-5
-                w-5
+                h-8
+                w-8
+                shrink-0
                 items-center
                 justify-center
-                rounded
+                rounded-md
                 bg-slate-700
-                text-[9px]
+                text-sm
                 font-bold
                 leading-none
+                transition
+                active:scale-95
                 sm:h-8
                 sm:w-8
                 sm:rounded-md
@@ -1518,18 +1758,20 @@ sm:p-3
             aria-label="Xóa sản phẩm"
             className="
               flex
-              h-5
-              w-5
+              h-8
+              w-8
               shrink-0
               items-center
               justify-center
-              rounded
+              rounded-md
               bg-red-500
-              text-[9px]
+              text-sm
               font-bold
               leading-none
               text-white
+              transition
               hover:bg-red-400
+              active:scale-95
               sm:h-8
               sm:w-8
               sm:rounded-md
@@ -1643,27 +1885,53 @@ sm:p-3
 
 )}
 
-<div className="mt-3 grid grid-cols-[92px_1fr] gap-2">
+<div className="mt-3 grid grid-cols-[104px_1fr] gap-2">
   <div>
-    <label className="mb-1 block text-[11px] font-medium text-slate-400">Danh xưng</label>
-    <select
-      value={customerTitle}
-      onChange={(e) => setCustomerTitle(e.target.value as 'Anh' | 'Chị')}
-      className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white outline-none focus:border-cyan-500"
-    >
-      <option value="Anh">Anh</option>
-      <option value="Chị">Chị</option>
-    </select>
+    <label className="mb-1 block text-[11px] font-medium text-slate-400">
+      Danh xưng
+    </label>
+
+    <div className="grid grid-cols-2 gap-1.5">
+      {(['Anh', 'Chị'] as const).map((title) => (
+        <button
+          key={title}
+          type="button"
+          onClick={() => setCustomerTitle(title)}
+          className={`
+            min-h-11
+            rounded-lg
+            border
+            text-sm
+            font-bold
+            transition
+            active:scale-95
+            ${
+              customerTitle === title
+                ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300'
+                : 'border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-600'
+            }
+          `}
+          aria-pressed={customerTitle === title}
+        >
+          {title}
+        </button>
+      ))}
+    </div>
   </div>
 
   <div className="relative">
-    <label className="mb-1 block text-[11px] font-medium text-slate-400">Tên khách hàng</label>
-    <User size={15} className="absolute left-4 top-[39px] -translate-y-1/2 text-slate-400" />
+    <label className="mb-1 block text-[11px] font-medium text-slate-400">
+      Tên khách hàng
+    </label>
+    <User
+      size={15}
+      className="absolute left-4 top-[39px] -translate-y-1/2 text-slate-400"
+    />
     <input
       placeholder="Tên khách hàng"
       value={customerName}
       onChange={(e) => setCustomerName(e.target.value.toUpperCase())}
-      className="uppercase w-full rounded-md border border-slate-700 bg-slate-900 py-3 pl-12 pr-4 text-sm"
+      className="uppercase min-h-11 w-full rounded-lg border border-slate-700 bg-slate-900 py-3 pl-12 pr-4 text-sm outline-none focus:border-cyan-500"
     />
   </div>
 </div>
@@ -1711,17 +1979,42 @@ sm:p-3
 </div>
 
 <div className="mt-3">
-  <label className="mb-1 block text-[11px] font-medium text-slate-400">Nguồn khách hàng</label>
-  <select
-    value={customerSource}
-    onChange={(e) => setCustomerSource(e.target.value)}
-    className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-white outline-none focus:border-cyan-500"
-  >
-    <option value="Facebook">Facebook</option>
-    <option value="TikTok">TikTok</option>
-    <option value="Zalo">Zalo</option>
-    <option value="Website">Website</option>
-  </select>
+  <label className="mb-1 block text-[11px] font-medium text-slate-400">
+    Nguồn khách hàng
+  </label>
+
+  <div className="grid grid-cols-4 gap-1.5">
+    {[
+      { value: 'Facebook', label: 'FB' },
+      { value: 'TikTok', label: 'TikTok' },
+      { value: 'Zalo', label: 'Zalo' },
+      { value: 'Website', label: 'Website' },
+    ].map((source) => (
+      <button
+        key={source.value}
+        type="button"
+        onClick={() => setCustomerSource(source.value)}
+        className={`
+          min-h-10
+          rounded-lg
+          border
+          px-1
+          text-[11px]
+          font-semibold
+          transition
+          active:scale-95
+          ${
+            customerSource === source.value
+              ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300'
+              : 'border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-600'
+          }
+        `}
+        aria-pressed={customerSource === source.value}
+      >
+        {source.label}
+      </button>
+    ))}
+  </div>
 </div>
 
 <div className="mt-3 mb-3">
@@ -1767,7 +2060,7 @@ sm:p-3
       {provinces.find(
         (province) =>
           String(province.code) === String(selectedProvince)
-      )?.name || 'Tỉnh / Thành phố'}
+      )?.name || 'Tỉnh / TP'}
     </span>
 
     <ChevronDown
@@ -1830,7 +2123,7 @@ sm:p-3
                     value={selectedDistrict}
                     onChange={(e) => setSelectedDistrict(e.target.value)}
                     disabled={!selectedProvince}
-                    className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-3 text-base text-white sm:text-sm outline-none transition disabled:cursor-not-allowed disabled:opacity-40 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30"
+                    className="h-9 w-full rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-40 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 sm:h-11 sm:px-3 sm:py-3 sm:text-sm"
                   >
                     <option value="">Quận / Huyện</option>
                     {districts.map((district) => (
@@ -1844,7 +2137,7 @@ sm:p-3
                     value={selectedWard}
                     onChange={(e) => setSelectedWard(e.target.value)}
                     disabled={!selectedDistrict}
-                    className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-3 text-base text-white sm:text-sm outline-none transition disabled:cursor-not-allowed disabled:opacity-40 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30"
+                    className="h-9 w-full rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-40 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 sm:h-11 sm:px-3 sm:py-3 sm:text-sm"
                   >
                     <option value="">Phường / Xã</option>
                     {wards.map((ward) => (
@@ -1860,7 +2153,7 @@ sm:p-3
                   placeholder="Số nhà, tên đường / căn hộ"
                   value={streetAddress}
                   onChange={(e) => setStreetAddress(e.target.value.toUpperCase())}
-                  className="uppercase w-full rounded-md border border-slate-700 bg-slate-900 px-2.5 py-2 text-sm text-white sm:px-3 sm:py-3 sm:text-sm placeholder:text-slate-500 outline-none transition focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30"
+                  className="uppercase h-9 w-full rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 sm:h-11 sm:px-3 sm:py-3 sm:text-sm"
                 />
 
                 {customerAddress && (
@@ -1972,18 +2265,40 @@ sm:p-3
         Phương thức thanh toán
       </label>
 
-      <select
-        value={paymentMethod}
-        onChange={(e) =>
-          setPaymentMethod(e.target.value)
-        }
-        className="mt-0.5 w-full rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-sm sm:mt-1 sm:px-3 sm:py-2.5 sm:text-sm"
-      >
-        <option value="cash">Tiền mặt</option>
-        <option value="bank">Chuyển khoản</option>
-        <option value="cod">COD</option>
-        <option value="momo">MoMo</option>
-      </select>
+      <div className="mt-1 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+        {[
+          { value: 'cash', label: 'Tiền mặt' },
+          { value: 'bank', label: 'Chuyển khoản' },
+          { value: 'cod', label: 'COD' },
+          { value: 'momo', label: 'MoMo' },
+        ].map((method) => (
+          <button
+            key={method.value}
+            type="button"
+            onClick={() => setPaymentMethod(method.value)}
+            className={`
+              min-h-11
+              rounded-lg
+              border
+              px-2
+              text-[11px]
+              font-semibold
+              transition
+              active:scale-[0.98]
+              sm:min-h-10
+              sm:text-xs
+              ${
+                paymentMethod === method.value
+                  ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,0.15)]'
+                  : 'border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-600 hover:text-slate-200'
+              }
+            `}
+            aria-pressed={paymentMethod === method.value}
+          >
+            {method.label}
+          </button>
+        ))}
+      </div>
     </div>
 
     {/* ĐVVC */}
@@ -1993,18 +2308,81 @@ sm:p-3
         Đơn vị vận chuyển
       </label>
 
-      <select
-        value={shippingProvider}
-        onChange={(e) =>
-          setShippingProvider(e.target.value)
-        }
-        className="mt-0.5 w-full rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-sm sm:mt-1 sm:px-3 sm:py-2.5 sm:text-sm"
-      >
-        <option value="GHN">GHN</option>
-        <option value="GHTK">GHTK</option>
-        <option value="J&T">J&T</option>
-        <option value="Viettel">Viettel</option>
-      </select>
+      <div className="mt-1 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+        {[
+          { value: 'GHN', label: 'GHN' },
+          { value: 'GHTK', label: 'GHTK' },
+          { value: 'J&T', label: 'J&T' },
+          { value: 'Viettel', label: 'Viettel' },
+        ].map((provider) => (
+          <button
+            key={provider.value}
+            type="button"
+            onClick={() => setShippingProvider(provider.value)}
+            className={`
+              min-h-11
+              rounded-lg
+              border
+              px-2
+              text-[11px]
+              font-semibold
+              transition
+              active:scale-[0.98]
+              sm:min-h-10
+              sm:text-xs
+              ${
+                shippingProvider === provider.value
+                  ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,0.15)]'
+                  : 'border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-600 hover:text-slate-200'
+              }
+            `}
+            aria-pressed={shippingProvider === provider.value}
+          >
+            {provider.label}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    {/* HÌNH THỨC VẬN CHUYỂN */}
+
+    <div className="mt-3">
+      <label className="text-xs text-slate-400">
+        Hình thức vận chuyển
+      </label>
+
+      <div className="mt-1 grid grid-cols-2 gap-1.5">
+        {[
+          { value: 'standard', label: 'GH Tiêu Chuẩn' },
+          { value: 'express', label: 'Giao Hỏa Tốc' },
+        ].map((method) => (
+          <button
+            key={method.value}
+            type="button"
+            onClick={() => setShippingMethod(method.value)}
+            className={`
+              min-h-11
+              rounded-lg
+              border
+              px-2
+              text-[11px]
+              font-semibold
+              transition
+              active:scale-[0.98]
+              sm:min-h-10
+              sm:text-xs
+              ${
+                shippingMethod === method.value
+                  ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,0.15)]'
+                  : 'border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-600 hover:text-slate-200'
+              }
+            `}
+            aria-pressed={shippingMethod === method.value}
+          >
+            {method.label}
+          </button>
+        ))}
+      </div>
     </div>
 
     {/* Đã thu */}
@@ -2333,8 +2711,8 @@ hover:bg-cyan-600
     <div><strong>SĐT:</strong> {customerPhone || '-'}</div>
     <div><strong>Nguồn:</strong> {customerSource || '-'}</div>
     <div><strong>ĐVVC:</strong> {shippingProvider || '-'}</div>
+    <div><strong>Giao hàng:</strong> {shippingMethod === 'express' ? 'Giao Hỏa Tốc' : 'GH Tiêu Chuẩn'}</div>
     <div><strong>Thanh toán:</strong> {paymentMethod || '-'}</div>
-    <div><strong>Đã thanh toán:</strong> {paidAmount.toLocaleString('vi-VN')} đ</div>
     <div style={{ gridColumn: '1 / -1' }}><strong>Địa chỉ giao hàng:</strong> {customerAddress || '-'}</div>
     <div style={{ gridColumn: '1 / -1' }}><strong>Note:</strong> {customerNote || '-'}</div>
   </div>
@@ -2749,7 +3127,7 @@ hover:bg-cyan-600
                 }
 
                 #invoice-print + .no-print button {
-                  min-height: 42px !important;
+                  min-height: 44px !important;
                   padding: 8px 10px !important;
                   border-radius: 9px !important;
                   font-size: 12px !important;
@@ -2786,15 +3164,16 @@ hover:bg-cyan-600
         </div>
 
         )}
-</div>
-      </>
+    </div>
 
-    )
+  </PageShell>
+)
   }
 function getBaseProductName(name: string = '') {
   return name
     .replace(/\s*[-–—]\s*(METAL|NON|RED|GREEN|BLUE|WHITE|BLACK|CHROME|GREY|GRAY|TEA|FRANCE).*$/i, '')
     .replace(/\s+(METAL|NON|RED|GREEN|BLUE|WHITE|BLACK|CHROME|GREY|GRAY|TEA|FRANCE)$/i, '')
+    .replace(/\.{2,}$/g, '')
     .trim()
 }
 
