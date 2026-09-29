@@ -1,10 +1,10 @@
-﻿'use client'
+'use client'
 import { Switch } from '@/components/ui/switch'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { Plus, Search, Filter, Download, Eye, Copy, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, Filter, Download } from 'lucide-react'
 import { PageShell, PageHeading } from '@/components/page-shell'
 import { FadeIn } from '@/components/motion'
 import {
@@ -44,24 +44,7 @@ import { useEffect } from 'react'
 import { formatVND, formatDateTime } from '@/lib/format'
 
 
-const ORDER_STATUS_FILTER_LABELS: Record<string, string> = {
-  all: 'Tất cả trạng thái',
-  draft: 'Nháp',
-  pending: 'Chờ xác nhận',
-  processing: 'Đang xử lý',
-  shipping: 'Đang giao',
-  completed: 'Hoàn thành',
-  cancelled: 'Đã hủy',
-  stock_due: 'Nợ hàng',
-}
-
 const ORDER_STATUS_UI: Record<string, { label: string; text: string; dot: string; bg: string }> = {
-  draft: {
-    label: 'Nháp',
-    text: 'text-slate-300',
-    dot: 'bg-slate-400',
-    bg: 'bg-slate-500/10 border-slate-500/20',
-  },
   pending: {
     label: 'Chờ xác nhận',
     text: 'text-amber-300',
@@ -163,11 +146,7 @@ console.log(data?.[0])
 
   return orders.filter((o) => {
 
-    if (status === 'stock_due') {
-      if (o.fulfillment_status !== 'waiting_stock') {
-        return false
-      }
-    } else if (
+    if (
       status !== 'all' &&
       o.status !== status
     ) {
@@ -439,25 +418,18 @@ const unpaidRevenue =
                 >
                   <SelectTrigger className="h-10 min-w-0 w-full text-[11px] sm:h-11 sm:text-sm">
                     <Filter className="size-3.5 shrink-0 text-muted-foreground" />
-                    <SelectValue placeholder="Trạng thái">
-                      {ORDER_STATUS_FILTER_LABELS[status] || 'Trạng thái'}
-                    </SelectValue>
+                    <SelectValue placeholder="Trạng thái" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectItem value="all">
-                        Tất cả trạng thái
-                      </SelectItem>
-
-                      {(Object.keys(ORDER_STATUS_LABELS) as OrderStatus[]).map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {ORDER_STATUS_LABELS[s]}
-                        </SelectItem>
-                      ))}
-
-                      <SelectItem value="stock_due">
-                        Nợ hàng
-                      </SelectItem>
+                      <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                      {(Object.keys(ORDER_STATUS_LABELS) as OrderStatus[]).map(
+                        (s) => (
+                          <SelectItem key={s} value={s}>
+                            {ORDER_STATUS_LABELS[s]}
+                          </SelectItem>
+                        )
+                      )}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
@@ -470,13 +442,7 @@ const unpaidRevenue =
                   }}
                 >
                   <SelectTrigger className="h-10 min-w-0 w-full text-[11px] sm:h-11 sm:text-sm">
-                    <SelectValue placeholder="Thanh toán">
-                      {paymentFilter === 'paid'
-                        ? 'Đã thanh toán'
-                        : paymentFilter === 'unpaid'
-                          ? 'Chưa thanh toán'
-                          : 'Tất cả thanh toán'}
-                    </SelectValue>
+                    <SelectValue placeholder="Thanh toán" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tất cả thanh toán</SelectItem>
@@ -562,24 +528,8 @@ const unpaidRevenue =
                       {/* Status — GIỮ NGUYÊN PROCESS */}
                       <div className="mt-3">
                         <Select
-                          value={
-                            o.fulfillment_status === 'waiting_stock'
-                              ? 'stock_due'
-                              : o.status
-                          }
+                          value={o.status}
                           onValueChange={async (value) => {
-
-                            if (value === 'stock_due') {
-                              await supabase
-                                .from('orders')
-                                .update({
-                                  fulfillment_status: 'waiting_stock',
-                                })
-                                .eq('id', o.id)
-
-                              loadOrders()
-                              return
-                            }
                             if (
                               value === 'cancelled' &&
                               o.status !== 'cancelled'
@@ -618,38 +568,12 @@ const unpaidRevenue =
                               }
                             }
 
-                            const updateData: Record<string, any> = {
-
-
-                              status: value,
-
-
-                            }
-
-
-
-                            if (o.fulfillment_status === 'waiting_stock') {
-
-
-                              updateData.fulfillment_status = 'ready'
-
-
-                            }
-
-
-
                             await supabase
-
-
                               .from('orders')
-
-
-                              .update(updateData)
-
-
+                              .update({
+                                status: value,
+                              })
                               .eq('id', o.id)
-
-
 
                             loadOrders()
                           }}
@@ -660,9 +584,7 @@ const unpaidRevenue =
                           >
                             <span className={cn(
                               "flex items-center gap-2 truncate font-medium",
-                              o.fulfillment_status === 'waiting_stock'
-                                ? "text-orange-300"
-                                : ORDER_STATUS_UI[o.status]?.text || "text-slate-300"
+                              ORDER_STATUS_UI[o.status]?.text || "text-slate-300"
                             )}>
                               <span
                                 className={cn(
@@ -676,72 +598,36 @@ const unpaidRevenue =
 
                           <SelectContent>
                             <SelectItem value="pending">
-
                               <span className="flex items-center gap-2 text-amber-300">
-
-                                <span className="size-1.5 shrink-0 rounded-full bg-amber-400" />
-
+                                <span className="size-1.5 rounded-full bg-amber-400" />
                                 Chờ xác nhận
-
                               </span>
-
                             </SelectItem>
                             <SelectItem value="processing">
-
                               <span className="flex items-center gap-2 text-sky-300">
-
-                                <span className="size-1.5 shrink-0 rounded-full bg-sky-400" />
-
+                                <span className="size-1.5 rounded-full bg-sky-400" />
                                 Đang xử lý
-
                               </span>
-
                             </SelectItem>
                             <SelectItem value="shipping">
-
                               <span className="flex items-center gap-2 text-violet-300">
-
-                                <span className="size-1.5 shrink-0 rounded-full bg-violet-400" />
-
+                                <span className="size-1.5 rounded-full bg-violet-400" />
                                 Đang giao
-
                               </span>
-
                             </SelectItem>
                             <SelectItem value="completed">
-
                               <span className="flex items-center gap-2 text-emerald-300">
-
-                                <span className="size-1.5 shrink-0 rounded-full bg-emerald-400" />
-
+                                <span className="size-1.5 rounded-full bg-emerald-400" />
                                 Hoàn thành
-
                               </span>
-
                             </SelectItem>
                             <SelectItem value="cancelled">
-
                               <span className="flex items-center gap-2 text-rose-300">
-
-                                <span className="size-1.5 shrink-0 rounded-full bg-rose-400" />
-
+                                <span className="size-1.5 rounded-full bg-rose-400" />
                                 Đã hủy
-
                               </span>
-
                             </SelectItem>
-
-
-                            <SelectItem value="stock_due">
-
-                              <span className="flex items-center gap-2 text-orange-300">
-  <span className="size-1.5 shrink-0 rounded-full bg-orange-400" />
-  Nợ hàng
-</span>
-
-                            </SelectItem>
-
-                            </SelectContent>
+                          </SelectContent>
                         </Select>
                       </div>
 
@@ -755,11 +641,8 @@ const unpaidRevenue =
                           }}
                           className="h-9 rounded-lg bg-cyan-500/10 px-3 text-xs font-semibold text-cyan-400 active:bg-cyan-500/20"
                         >
-                          <Eye className="mr-1 inline-block size-3.5" />
-
-                          Xem
-
-                          </button>
+                          👁 Xem
+                        </button>
 
                         <button
                           type="button"
@@ -769,11 +652,8 @@ const unpaidRevenue =
                           }}
                           className="h-9 rounded-lg bg-yellow-500/10 px-3 text-xs font-semibold text-yellow-400 active:bg-yellow-500/20"
                         >
-                          <Copy className="mr-1 inline-block size-3.5" />
-
-                          Copy
-
-                          </button>
+                          📄 Copy
+                        </button>
                       </div>
                     </div>
                   )
@@ -865,24 +745,8 @@ const unpaidRevenue =
                           onClick={(e) => e.stopPropagation()}
                         >
                           <Select
-                            value={
-                            o.fulfillment_status === 'waiting_stock'
-                              ? 'stock_due'
-                              : o.status
-                          }
-                          onValueChange={async (value) => {
-
-                            if (value === 'stock_due') {
-                              await supabase
-                                .from('orders')
-                                .update({
-                                  fulfillment_status: 'waiting_stock',
-                                })
-                                .eq('id', o.id)
-
-                              loadOrders()
-                              return
-                            }
+                            value={o.status}
+                            onValueChange={async (value) => {
                               if (
                                 value === 'cancelled' &&
                                 o.status !== 'cancelled'
@@ -923,38 +787,12 @@ const unpaidRevenue =
                                 }
                               }
 
-                              const updateData: Record<string, any> = {
-
-
-                                status: value,
-
-
-                              }
-
-
-
-                              if (o.fulfillment_status === 'waiting_stock') {
-
-
-                                updateData.fulfillment_status = 'ready'
-
-
-                              }
-
-
-
                               await supabase
-
-
                                 .from('orders')
-
-
-                                .update(updateData)
-
-
+                                .update({
+                                  status: value,
+                                })
                                 .eq('id', o.id)
-
-
 
                               loadOrders()
                             }}
@@ -962,9 +800,7 @@ const unpaidRevenue =
                             <SelectTrigger className="h-8 w-[150px] border-0 bg-slate-800">
                               <span className={cn(
                                 "flex items-center gap-2 text-sm font-medium",
-                                o.fulfillment_status === 'waiting_stock'
-                                  ? "text-orange-300"
-                                  : ORDER_STATUS_UI[o.status]?.text || "text-slate-300"
+                                ORDER_STATUS_UI[o.status]?.text || "text-slate-300"
                               )}>
                                 <span
                                   className={cn(
@@ -972,80 +808,27 @@ const unpaidRevenue =
                                     ORDER_STATUS_UI[o.status]?.dot || "bg-slate-400"
                                   )}
                                 />
-                                {o.fulfillment_status === 'waiting_stock'
-                                  ? 'Nợ hàng'
-                                  : ORDER_STATUS_UI[o.status]?.label || o.status}
+                                {ORDER_STATUS_UI[o.status]?.label || o.status}
                               </span>
                             </SelectTrigger>
 
                             <SelectContent>
                               <SelectItem value="pending">
-
-                                <span className="flex items-center gap-2 text-amber-300">
-
-                                  <span className="size-1.5 shrink-0 rounded-full bg-amber-400" />
-
-                                  Chờ xác nhận
-
-                                </span>
-
+                                🟡 Chờ xác nhận
                               </SelectItem>
                               <SelectItem value="processing">
-
-                                <span className="flex items-center gap-2 text-sky-300">
-
-                                  <span className="size-1.5 shrink-0 rounded-full bg-sky-400" />
-
-                                  Đang xử lý
-
-                                </span>
-
+                                🔵 Đang xử lý
                               </SelectItem>
                               <SelectItem value="shipping">
-
-                                <span className="flex items-center gap-2 text-violet-300">
-
-                                  <span className="size-1.5 shrink-0 rounded-full bg-violet-400" />
-
-                                  Đang giao
-
-                                </span>
-
+                                🟣 Đang giao
                               </SelectItem>
                               <SelectItem value="completed">
-
-                                <span className="flex items-center gap-2 text-emerald-300">
-
-                                  <span className="size-1.5 shrink-0 rounded-full bg-emerald-400" />
-
-                                  Hoàn thành
-
-                                </span>
-
+                                🟢 Hoàn thành
                               </SelectItem>
                               <SelectItem value="cancelled">
-
-                                <span className="flex items-center gap-2 text-rose-300">
-
-                                  <span className="size-1.5 shrink-0 rounded-full bg-rose-400" />
-
-                                  Đã hủy
-
-                                </span>
-
+                                🔴 Đã hủy
                               </SelectItem>
-
-
-                              <SelectItem value="stock_due">
-
-                                <span className="flex items-center gap-2 text-orange-300">
-  <span className="size-1.5 shrink-0 rounded-full bg-orange-400" />
-  Nợ hàng
-</span>
-
-                              </SelectItem>
-
-                              </SelectContent>
+                            </SelectContent>
                           </Select>
                         </TableCell>
 
@@ -1062,22 +845,16 @@ const unpaidRevenue =
                               onClick={() => openOrder(o)}
                               className="rounded-lg px-3 py-1.5 text-cyan-400 hover:bg-cyan-500/10"
                             >
-                              <Eye className="mr-1 inline-block size-3.5" />
-
-                              Xem
-
-                              </button>
+                              👁 Xem
+                            </button>
 
                             <button
                               type="button"
                               onClick={() => duplicateOrder(o)}
                               className="rounded-lg px-3 py-1.5 text-yellow-400 hover:bg-yellow-500/10"
                             >
-                              <Copy className="mr-1 inline-block size-3.5" />
-
-                              Copy
-
-                              </button>
+                              📄 Copy
+                            </button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1109,7 +886,7 @@ const unpaidRevenue =
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(currentPage - 1)}
                 >
-                  <ChevronLeft className="size-4" />
+                  ←
                 </Button>
 
                 <span className="text-xs text-slate-400 sm:hidden">
@@ -1149,7 +926,7 @@ const unpaidRevenue =
                     setCurrentPage(currentPage + 1)
                   }
                 >
-                  <ChevronRight className="size-4" />
+                  →
                 </Button>
               </div>
             </CardContent>
@@ -1165,5 +942,3 @@ const unpaidRevenue =
     </PageShell>
   )
 }
-
-

@@ -16,6 +16,18 @@ import { Button } from '@/components/ui/button'
 
 import {
   Printer,
+  CalendarDays,
+  CheckCircle2,
+  WalletCards,
+  History,
+  UserRound,
+  Phone,
+  MapPin,
+  FileText,
+  Package,
+  StickyNote,
+  Save,
+  CircleDollarSign,
 } from 'lucide-react'
 
 import {
@@ -46,6 +58,37 @@ export function OrderDetailSheet({
     paymentHistory,
     setPaymentHistory,
   ] = useState<any[]>([])
+
+  /*
+   * ==============================
+   * STOCK DEBT / ETA
+   * ==============================
+   */
+
+  const [
+    expectedStockDate,
+    setExpectedStockDate,
+  ] = useState('')
+
+  const [
+    stockNote,
+    setStockNote,
+  ] = useState('')
+
+  const [
+    customerNotified,
+    setCustomerNotified,
+  ] = useState(false)
+
+  const [
+    savingStockInfo,
+    setSavingStockInfo,
+  ] = useState(false)
+
+  const [
+    stockSaved,
+    setStockSaved,
+  ] = useState(false)
 
   /*
    * ==============================
@@ -82,6 +125,40 @@ export function OrderDetailSheet({
   }, [order?.id])
 
 
+  useEffect(() => {
+
+    if (!order?.id) {
+      setExpectedStockDate('')
+      setStockNote('')
+      setCustomerNotified(false)
+      setStockSaved(false)
+      return
+    }
+
+    setExpectedStockDate(
+      order.expected_stock_date
+        ? String(order.expected_stock_date).slice(0, 10)
+        : ''
+    )
+
+    setStockNote(
+      order.stock_note || ''
+    )
+
+    setCustomerNotified(
+      Boolean(order.last_contact_at)
+    )
+
+    setStockSaved(false)
+
+  }, [
+    order?.id,
+    order?.expected_stock_date,
+    order?.stock_note,
+    order?.last_contact_at,
+  ])
+
+
   const loadPaymentHistory =
     async () => {
 
@@ -107,6 +184,59 @@ export function OrderDetailSheet({
       setPaymentHistory(
         data || []
       )
+    }
+
+
+  /*
+   * ==============================
+   * SAVE STOCK / ETA
+   * ==============================
+   */
+
+  const handleSaveStockInfo =
+    async () => {
+
+      if (!order?.id) return
+
+      setSavingStockInfo(true)
+      setStockSaved(false)
+
+      const { error } =
+        await supabase
+          .from('orders')
+          .update({
+            expected_stock_date:
+              expectedStockDate || null,
+            stock_note:
+              stockNote.trim() || null,
+            last_contact_at:
+              customerNotified
+                ? (
+                    order.last_contact_at ||
+                    new Date().toISOString()
+                  )
+                : null,
+          })
+          .eq(
+            'id',
+            order.id
+          )
+
+      setSavingStockInfo(false)
+
+      if (error) {
+        console.error(
+          'Không thể lưu thông tin nợ hàng:',
+          error
+        )
+        return
+      }
+
+      setStockSaved(true)
+
+      setTimeout(() => {
+        setStockSaved(false)
+      }, 2000)
     }
 
 
@@ -520,12 +650,15 @@ window.onload = function () {
 
       <SheetContent
         className="
-          !w-[calc(100vw-16px)]
-          !max-w-none
-          sm:!w-[420px]
-          sm:!max-w-[420px]
+          !w-full
+          sm:!w-[440px]
+          sm:!max-w-[440px]
           p-0
           overflow-hidden
+          border-l
+          border-slate-800
+          bg-[#07111d]
+          shadow-2xl
         "
       >
 
@@ -537,9 +670,10 @@ window.onload = function () {
         <SheetHeader
           className="
             border-b
-            border-border
+            border-slate-800
+            bg-[#08131f]
             px-4
-            py-3
+            py-4
           "
         >
 
@@ -557,20 +691,28 @@ window.onload = function () {
               <SheetTitle
                 className="
                   text-blue-500
-                  text-lg
-                  leading-tight
-                  sm:text-2xl
+                  text-2xl
                 "
               >
                 THÔNG TIN ĐƠN HÀNG
               </SheetTitle>
 
-              <SheetDescription>
-                Tạo lúc{' '}
-                {formatDateTime(
-                  order.created_at
-                )}
-              </SheetDescription>
+              <div
+                className="
+                  mt-1
+                  flex
+                  items-center
+                  gap-2
+                "
+              >
+                <FileText className="size-3.5 text-slate-500" />
+                <SheetDescription className="text-xs text-slate-500">
+                  Tạo lúc{' '}
+                  {formatDateTime(
+                    order.created_at
+                  )}
+                </SheetDescription>
+              </div>
 
             </div>
 
@@ -593,14 +735,12 @@ window.onload = function () {
 
           <div
             className="
-              min-w-0
               flex-1
-              overflow-x-hidden
               overflow-y-auto
-              p-2.5
+              bg-[#07111d]
+              p-3
               text-sm
               custom-scroll
-              sm:p-3
             "
           >
 
@@ -609,15 +749,37 @@ window.onload = function () {
                 PAYMENT SUMMARY
             ===================================== */}
 
-            <h2
+            <div
               className="
                 mb-2
-                text-sm
-                font-semibold
+                flex
+                items-center
+                gap-2
               "
             >
-              Thông tin đơn hàng
-            </h2>
+              <div
+                className="
+                  flex
+                  size-7
+                  items-center
+                  justify-center
+                  rounded-lg
+                  bg-cyan-500/10
+                  text-cyan-400
+                "
+              >
+                <WalletCards className="size-4" />
+              </div>
+
+              <div>
+                <h2 className="text-sm font-semibold text-white">
+                  Thông tin đơn hàng
+                </h2>
+                <p className="text-[11px] text-slate-500">
+                  Tổng quan thanh toán
+                </p>
+              </div>
+            </div>
 
 
             <div
@@ -626,6 +788,7 @@ window.onload = function () {
                 rounded-xl
                 border
                 border-slate-800
+                bg-[#0b1724]
                 p-3
               "
             >
@@ -648,8 +811,10 @@ window.onload = function () {
 
                 <span
                   className="
-                    font-semibold
-                    text-green-500
+                    text-lg
+                    font-bold
+                    tracking-tight
+                    text-emerald-400
                   "
                 >
                   {paidAmount.toLocaleString(
@@ -678,8 +843,10 @@ window.onload = function () {
 
                 <span
                   className="
-                    font-semibold
-                    text-red-500
+                    text-lg
+                    font-bold
+                    tracking-tight
+                    text-rose-400
                   "
                 >
                   {remainingAmount.toLocaleString(
@@ -699,10 +866,12 @@ window.onload = function () {
 
             <div
               className="
+                mt-3
                 rounded-xl
                 border
                 border-slate-800
-                p-2.5
+                bg-[#0b1724]
+                p-3
               "
             >
 
@@ -715,7 +884,10 @@ window.onload = function () {
                   text-slate-500
                 "
               >
-                Lịch sử thanh toán
+                <span className="flex items-center gap-2">
+                  <History className="size-3.5" />
+                  Lịch sử thanh toán
+                </span>
               </div>
 
 
@@ -796,121 +968,436 @@ window.onload = function () {
                 rounded-xl
                 border
                 border-slate-800
-                p-2.5
+                bg-[#0b1724]
+                p-3
               "
             >
 
               <div
                 className="
-                  mb-2
+                  mb-3
+                  flex
+                  items-center
+                  gap-2
                   text-xs
+                  font-semibold
                   uppercase
                   tracking-wider
-                  text-slate-500
+                  text-slate-400
                 "
               >
+                <div
+                  className="
+                    flex
+                    size-7
+                    items-center
+                    justify-center
+                    rounded-lg
+                    bg-violet-500/10
+                    text-violet-400
+                  "
+                >
+                  <UserRound className="size-4" />
+                </div>
+
                 Thông tin khách hàng
               </div>
 
 
               <div
                 className="
-                  min-w-0
                   space-y-2
-                  break-words
                   text-sm
+                "
+              >
+
+                <div className="flex items-start gap-2">
+                  <UserRound className="mt-0.5 size-3.5 shrink-0 text-slate-600" />
+                  <div className="min-w-0">
+                    <div className="text-[11px] text-slate-500">Khách hàng</div>
+                    <div className="font-medium text-slate-100">
+                      {order.customers?.full_name}
+                    </div>
+                  </div>
+                </div>
+
+
+                <div className="flex items-start gap-2">
+                  <Phone className="mt-0.5 size-3.5 shrink-0 text-slate-600" />
+                  <div>
+                    <div className="text-[11px] text-slate-500">SĐT</div>
+                    <div className="text-slate-200">
+                      {order.customers?.phone}
+                    </div>
+                  </div>
+                </div>
+
+
+                <div className="flex items-start gap-2">
+                  <MapPin className="mt-0.5 size-3.5 shrink-0 text-slate-600" />
+                  <div className="min-w-0">
+                    <div className="text-[11px] text-slate-500">Địa chỉ</div>
+                    <div className="leading-5 text-slate-200">
+                      {order.customers?.address}
+                    </div>
+                  </div>
+                </div>
+
+
+                <div className="flex items-start gap-2">
+                  <FileText className="mt-0.5 size-3.5 shrink-0 text-slate-600" />
+                  <div>
+                    <div className="text-[11px] text-slate-500">Mã đơn</div>
+                    <div className="font-mono text-xs text-slate-200">
+                      {order.order_code}
+                    </div>
+                  </div>
+                </div>
+
+
+                <div className="flex items-start gap-2">
+                  <CircleDollarSign className="mt-0.5 size-3.5 shrink-0 text-slate-600" />
+                  <div>
+                    <div className="text-[11px] text-slate-500">Mã KH</div>
+                    <div className="font-mono text-xs text-slate-200">
+                      {order.customers?.customer_display_code}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+
+            {/* =====================================
+                STOCK DEBT / ETA
+            ===================================== */}
+
+            <div
+              className="
+                mt-3
+                rounded-xl
+                border
+                border-orange-500/15
+                bg-gradient-to-b
+                from-orange-500/[0.06]
+                to-[#0b1724]
+                p-3
+              "
+            >
+
+              <div
+                className="
+                  mb-3
+                  flex
+                  items-center
+                  gap-2
+                "
+              >
+
+                <div
+                  className="
+                    flex
+                    size-7
+                    items-center
+                    justify-center
+                    rounded-lg
+                    bg-orange-500/10
+                    text-orange-300
+                  "
+                >
+                  <CalendarDays className="size-4" />
+                </div>
+
+                <div>
+
+                  <div
+                    className="
+                      text-xs
+                      font-semibold
+                      uppercase
+                      tracking-wider
+                      text-slate-400
+                    "
+                  >
+                    Tình trạng hàng
+                  </div>
+
+                  <div
+                    className="
+                      text-xs
+                      text-slate-600
+                    "
+                  >
+                    Theo dõi hàng đang thiếu
+                  </div>
+
+                </div>
+
+              </div>
+
+
+              {/* ETA */}
+
+              <div>
+
+                <label
+                  className="
+                    mb-1.5
+                    block
+                    text-xs
+                    text-slate-400
+                  "
+                >
+                  Dự kiến hàng về
+                </label>
+
+                <div className="relative">
+
+                  <input
+                    type="date"
+                    value={expectedStockDate}
+                    onChange={(e) =>
+                      setExpectedStockDate(
+                        e.target.value
+                      )
+                    }
+                    className="
+                      h-10
+                      w-full
+                      rounded-lg
+                      border
+                      border-slate-700
+                      bg-slate-900
+                      px-3
+                      text-sm
+                      text-white
+                      outline-none
+                      transition
+                      focus:border-orange-400
+                    "
+                  />
+
+                </div>
+
+                {expectedStockDate && (
+
+                  <div
+                    className="
+                      mt-1.5
+                      text-xs
+                      text-orange-300
+                    "
+                  >
+                    {(() => {
+
+                      const today =
+                        new Date()
+
+                      today.setHours(
+                        0, 0, 0, 0
+                      )
+
+                      const eta =
+                        new Date(
+                          `${expectedStockDate}T00:00:00`
+                        )
+
+                      const diff =
+                        Math.ceil(
+                          (
+                            eta.getTime() -
+                            today.getTime()
+                          ) /
+                          86400000
+                        )
+
+                      if (diff > 1) {
+                        return `Còn ${diff} ngày`
+                      }
+
+                      if (diff === 1) {
+                        return 'Còn 1 ngày'
+                      }
+
+                      if (diff === 0) {
+                        return 'Hàng dự kiến về hôm nay'
+                      }
+
+                      return `Trễ ${Math.abs(diff)} ngày`
+                    })()}
+                  </div>
+
+                )}
+
+              </div>
+
+
+              {/* CUSTOMER NOTIFIED */}
+
+              <button
+                type="button"
+                onClick={() =>
+                  setCustomerNotified(
+                    !customerNotified
+                  )
+                }
+                className="
+                  mt-3
+                  flex
+                  w-full
+                  items-center
+                  justify-between
+                  rounded-lg
+                  border
+                  border-slate-800
+                  bg-slate-900/60
+                  px-3
+                  py-2.5
+                  text-left
+                  transition
+                  hover:border-slate-700
                 "
               >
 
                 <div>
 
-                  <span
+                  <div
                     className="
+                      text-xs
                       text-slate-400
                     "
                   >
-                    Khách hàng:
-                  </span>
+                    Khách đã được thông báo
+                  </div>
 
-                  {' '}
-
-                  <span
-                    className="
+                  <div
+                    className={`
+                      mt-0.5
+                      text-sm
                       font-medium
-                    "
+                      ${
+                        customerNotified
+                          ? 'text-emerald-400'
+                          : 'text-slate-500'
+                      }
+                    `}
                   >
-                    {order.customers?.full_name}
-                  </span>
+                    {customerNotified
+                      ? 'Đã thông báo'
+                      : 'Chưa thông báo'}
+                  </div>
 
                 </div>
 
+                <CheckCircle2
+                  className={`
+                    size-5
+                    ${
+                      customerNotified
+                        ? 'text-emerald-400'
+                        : 'text-slate-700'
+                    }
+                  `}
+                />
 
-                <div>
-
-                  <span
-                    className="
-                      text-slate-400
-                    "
-                  >
-                    SĐT:
-                  </span>
-
-                  {' '}
-
-                  {order.customers?.phone}
-
-                </div>
+              </button>
 
 
-                <div>
+              {/* NOTE */}
 
-                  <span
-                    className="
-                      text-slate-400
-                    "
-                  >
-                    Địa chỉ:
-                  </span>
+              <div className="mt-3">
 
-                  {' '}
+                <label
+                  className="
+                    mb-1.5
+                    block
+                    text-xs
+                    text-slate-400
+                  "
+                >
+                  Ghi chú
+                </label>
 
-                  {order.customers?.address}
+                <textarea
+                  value={stockNote}
+                  onChange={(e) =>
+                    setStockNote(
+                      e.target.value
+                    )
+                  }
+                  rows={3}
+                  placeholder="Ví dụ: Hàng đang chờ nhà cung cấp, khách đồng ý chờ..."
+                  className="
+                    w-full
+                    resize-none
+                    rounded-lg
+                    border
+                    border-slate-700
+                    bg-slate-900
+                    px-3
+                    py-2.5
+                    text-sm
+                    text-white
+                    outline-none
+                    placeholder:text-slate-600
+                    focus:border-orange-400
+                  "
+                />
 
-                </div>
+              </div>
 
 
-                <div>
+              {/* SAVE */}
 
-                  <span
-                    className="
-                      text-slate-400
-                    "
-                  >
-                    Mã đơn:
-                  </span>
+              <div
+                className="
+                  mt-3
+                  flex
+                  items-center
+                  justify-between
+                  gap-2
+                "
+              >
 
-                  {' '}
+                <span
+                  className="
+                    text-xs
+                    text-slate-600
+                  "
+                >
+                  {stockSaved
+                    ? 'Đã lưu cập nhật'
+                    : 'Cập nhật khi có thông tin mới'}
+                </span>
 
-                  {order.order_code}
-
-                </div>
-
-
-                <div>
-
-                  <span
-                    className="
-                      text-slate-400
-                    "
-                  >
-                    Mã KH:
-                  </span>
-
-                  {' '}
-
-                  {order.customers?.customer_display_code}
-
-                </div>
+                <Button
+                  type="button"
+                  onClick={
+                    handleSaveStockInfo
+                  }
+                  disabled={
+                    savingStockInfo
+                  }
+                  className="
+                    h-9
+                    bg-orange-500
+                    px-4
+                    text-xs
+                    text-white
+                    hover:bg-orange-600
+                  "
+                >
+                  {savingStockInfo ? (
+                    'Đang lưu...'
+                  ) : (
+                    <>
+                      <Save className="mr-1.5 size-3.5" />
+                      Lưu cập nhật
+                    </>
+                  )}
+                </Button>
 
               </div>
 
@@ -921,34 +1408,52 @@ window.onload = function () {
                 ORDER ITEMS
             ===================================== */}
 
-            <div
-              className="
-                mt-4
-              "
-            >
+            <div className="mt-4">
 
-              {(order.order_items || []).map(
+              <div
+                className="
+                  mb-2
+                  flex
+                  items-center
+                  gap-2
+                  px-1
+                "
+              >
+                <Package className="size-4 text-slate-500" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Sản phẩm
+                </span>
+                <span className="text-[11px] text-slate-600">
+                  {(order.order_items || []).length} sản phẩm
+                </span>
+              </div>
+
+              <div className="overflow-hidden rounded-xl border border-slate-800 bg-[#0b1724]">
+
+                {(order.order_items || []).map(
                 (item: any) => (
 
                   <div
                     key={item.id}
                     className="
                       flex
-                      min-w-0
-                      items-start
-                      gap-3
                       justify-between
+                      gap-3
                       border-b
-                      py-2
+                      border-slate-800
+                      px-3
+                      py-3
+                      last:border-b-0
                     "
                   >
 
-                    <div className="min-w-0 flex-1">
+                    <div>
 
                       <div
                         className="
-                          break-words
                           font-medium
+                          leading-5
+                          text-slate-100
                         "
                       >
                         {item.product_name ||
@@ -998,9 +1503,7 @@ window.onload = function () {
 
                     <div
                       className="
-                        shrink-0
                         whitespace-nowrap
-                        text-right
                       "
                     >
                       {Number(
@@ -1016,6 +1519,8 @@ window.onload = function () {
                 )
               )}
 
+              </div>
+
             </div>
 
 
@@ -1025,15 +1530,28 @@ window.onload = function () {
 
             <div
               className="
-                mt-3
-                text-right
+                mt-2
+                flex
+                items-center
+                justify-between
+                rounded-xl
+                border
+                border-slate-800
+                bg-[#0b1724]
+                px-3
+                py-3
               "
             >
+              <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                Tổng đơn
+              </span>
 
               <div
                 className="
-                  text-base
+                  text-lg
                   font-bold
+                  tracking-tight
+                  text-white
                 "
               >
                 {totalAmount.toLocaleString(
@@ -1056,19 +1574,14 @@ window.onload = function () {
             className="
               mt-auto
               border-t
-              border-border
-              bg-slate-950
+              border-slate-800
+              bg-[#06101b]/98
               p-3
+              shadow-[0_-18px_40px_rgba(2,6,23,0.48)]
             "
           >
 
-            <div
-              className="
-                grid
-                gap-3
-              "
-            >
-
+            <div className="grid gap-2.5">
 
               {/* PRINT */}
 
@@ -1078,15 +1591,24 @@ window.onload = function () {
                   setShowPrintSettings(true)
                 }
                 className="
+                  h-10
                   w-full
+                  rounded-xl
+                  border-slate-700
+                  bg-slate-900/80
+                  text-sm
+                  font-medium
+                  text-slate-200
+                  transition-all
+                  hover:border-slate-600
+                  hover:bg-slate-800
                 "
               >
 
                 <Printer
                   className="
                     mr-2
-                    h-4
-                    w-4
+                    size-4
                   "
                 />
 
@@ -1099,44 +1621,115 @@ window.onload = function () {
 
               <div
                 className="
-                  flex
-                  gap-2
+                  rounded-2xl
+                  border
+                  border-cyan-400/25
+                  bg-gradient-to-b
+                  from-cyan-500/[0.08]
+                  to-cyan-500/[0.02]
+                  p-3
+                  shadow-[0_8px_30px_rgba(6,182,212,0.08)]
                 "
               >
 
-                <input
-                  type="number"
-                  placeholder="Nhập số tiền thu"
-                  value={paymentAmount}
-                  onChange={(e) =>
-                    setPaymentAmount(
-                      e.target.value
-                    )
-                  }
+                <div
                   className="
-                    h-10
-                    flex-1
-                    rounded-md
-                    border
-                    border-slate-700
-                    bg-slate-900
-                    px-3
-                    text-sm
-                    text-white
-                  "
-                />
-
-
-                <Button
-                  onClick={
-                    handleCollectPayment
-                  }
-                  className="
-                    min-w-[90px]
+                    mb-2
+                    flex
+                    items-center
+                    justify-between
+                    px-1
                   "
                 >
-                  Thu tiền
-                </Button>
+
+                  <span
+                    className="
+                      text-[11px]
+                      font-medium
+                      uppercase
+                      tracking-wide
+                      text-slate-500
+                    "
+                  >
+                    Thu tiền
+                  </span>
+
+                  <span
+                    className="
+                      text-[11px]
+                      text-cyan-400
+                    "
+                  >
+                    <CircleDollarSign className="size-3.5" />
+                    Nhập số tiền
+                  </span>
+
+                </div>
+
+
+                <div
+                  className="
+                    flex
+                    gap-2
+                  "
+                >
+
+                  <input
+                    type="number"
+                    placeholder="Nhập số tiền thu"
+                    value={paymentAmount}
+                    onChange={(e) =>
+                      setPaymentAmount(
+                        e.target.value
+                      )
+                    }
+                    className="
+                      h-12
+                      min-w-0
+                      flex-1
+                      rounded-xl
+                      border
+                      border-cyan-500/25
+                      bg-slate-950
+                      px-3.5
+                      text-base
+                      font-semibold
+                      text-white
+                      outline-none
+                      transition
+                      placeholder:text-slate-500
+                      focus:border-cyan-400
+                      focus:ring-2
+                      focus:ring-cyan-400/10
+                    "
+                  />
+
+
+                  <Button
+                    onClick={
+                      handleCollectPayment
+                    }
+                    className="
+                      h-12
+                      min-w-[112px]
+                      rounded-xl
+                      bg-cyan-500
+                      px-5
+                      text-sm
+                      font-semibold
+                      text-white
+                      shadow-[0_8px_24px_rgba(6,182,212,0.22)]
+                      transition-all
+                      hover:-translate-y-0.5
+                      hover:bg-cyan-400
+                      hover:shadow-[0_10px_28px_rgba(6,182,212,0.30)]
+                      active:translate-y-0
+                    "
+                  >
+                    Thu tiền
+                  </Button>
+
+                </div>
 
               </div>
 

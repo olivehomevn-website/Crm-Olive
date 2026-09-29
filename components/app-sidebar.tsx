@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronRight, Zap } from 'lucide-react'
+import { ChevronRight, PackageOpen, Zap } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -229,31 +229,60 @@ export function AppSidebar() {
                     "
                   >
                     {item.items.map((sub) => (
-                      <SidebarMenuSubItem key={sub.url}>
-                        <SidebarMenuSubButton
-                          render={<Link href={sub.url} />}
-                          isActive={pathname === sub.url}
-                          className="
-                            h-11
-                            w-full
-                            rounded-lg
-                            px-4
-                            text-[15px]
-                            font-medium
-                            transition-all
-                            duration-200
-                            hover:bg-slate-800
-                          "
-                        >
-                          {sub.icon && (
-                            <sub.icon className="h-4 w-4 shrink-0" />
-                          )}
+                      <div key={sub.url}>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            render={<Link href={sub.url} />}
+                            isActive={pathname === sub.url}
+                            className="
+                              h-11
+                              w-full
+                              rounded-lg
+                              px-4
+                              text-[15px]
+                              font-medium
+                              transition-all
+                              duration-200
+                              hover:bg-slate-800
+                            "
+                          >
+                            {sub.icon && (
+                              <sub.icon className="h-4 w-4 shrink-0" />
+                            )}
 
-                          <span className="truncate">
-                            {sub.title}
-                          </span>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
+                            <span className="truncate">
+                              {sub.title}
+                            </span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+
+                        {/* NỢ HÀNG — đặt giữa Danh sách đơn hàng và Tạo đơn hàng mới */}
+                        {item.title === 'Đơn hàng' &&
+                          sub.title === 'Danh sách đơn hàng' && (
+                            <SidebarMenuSubItem className="mt-2">
+                              <SidebarMenuSubButton
+                                render={<Link href="/don-hang/no-hang" />}
+                                isActive={pathname === '/don-hang/no-hang'}
+                                className="
+                                  h-11
+                                  w-full
+                                  rounded-lg
+                                  px-4
+                                  text-[15px]
+                                  font-medium
+                                  transition-all
+                                  duration-200
+                                  hover:bg-slate-800
+                                  data-[active=true]:bg-cyan-500/15
+                                  data-[active=true]:text-cyan-400
+                                "
+                              >
+                                <PackageOpen className="h-4 w-4 shrink-0" />
+                                <span className="truncate">Nợ hàng</span>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          )}
+                      </div>
                     ))}
                   </SidebarMenuSub>
                 </CollapsibleContent>

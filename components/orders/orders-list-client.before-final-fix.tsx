@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { Plus, Search, Filter, Download, Eye, Copy, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, Filter, Download } from 'lucide-react'
 import { PageShell, PageHeading } from '@/components/page-shell'
 import { FadeIn } from '@/components/motion'
 import {
@@ -44,50 +44,33 @@ import { useEffect } from 'react'
 import { formatVND, formatDateTime } from '@/lib/format'
 
 
-const ORDER_STATUS_FILTER_LABELS: Record<string, string> = {
-  all: 'Tất cả trạng thái',
-  draft: 'Nháp',
-  pending: 'Chờ xác nhận',
-  processing: 'Đang xử lý',
-  shipping: 'Đang giao',
-  completed: 'Hoàn thành',
-  cancelled: 'Đã hủy',
-  stock_due: 'Nợ hàng',
-}
-
 const ORDER_STATUS_UI: Record<string, { label: string; text: string; dot: string; bg: string }> = {
-  draft: {
-    label: 'Nháp',
-    text: 'text-slate-300',
-    dot: 'bg-slate-400',
-    bg: 'bg-slate-500/10 border-slate-500/20',
-  },
   pending: {
-    label: 'Chờ xác nhận',
+    label: 'Chá» xÃ¡c nháº­n',
     text: 'text-amber-300',
     dot: 'bg-amber-400',
     bg: 'bg-amber-500/10 border-amber-500/20',
   },
   processing: {
-    label: 'Đang xử lý',
+    label: 'Äang xá»­ lÃ½',
     text: 'text-sky-300',
     dot: 'bg-sky-400',
     bg: 'bg-sky-500/10 border-sky-500/20',
   },
   shipping: {
-    label: 'Đang giao',
+    label: 'Äang giao',
     text: 'text-violet-300',
     dot: 'bg-violet-400',
     bg: 'bg-violet-500/10 border-violet-500/20',
   },
   completed: {
-    label: 'Hoàn thành',
+    label: 'HoÃ n thÃ nh',
     text: 'text-emerald-300',
     dot: 'bg-emerald-400',
     bg: 'bg-emerald-500/10 border-emerald-500/20',
   },
   cancelled: {
-    label: 'Đã hủy',
+    label: 'ÄÃ£ há»§y',
     text: 'text-rose-300',
     dot: 'bg-rose-400',
     bg: 'bg-rose-500/10 border-rose-500/20',
@@ -307,7 +290,7 @@ const unpaidRevenue =
     )
 
   return (
-    <PageShell title="Danh sách đơn hàng">
+    <PageShell title="Danh sÃ¡ch Ä‘Æ¡n hÃ ng">
       <div className="w-full min-w-0 overflow-x-hidden bg-[#071018]">
 
         {/* PAGE HEADER */}
@@ -321,13 +304,13 @@ const unpaidRevenue =
                 className="h-10 w-full px-3 text-xs sm:w-auto sm:text-sm"
               >
                 <Download data-icon="inline-start" />
-                Xuất Excel
+                Xuáº¥t Excel
               </Button>
 
               <Link href="/don-hang/tao-moi" className="w-full sm:w-auto">
                 <Button className="h-10 w-full px-3 text-xs sm:text-sm">
                   <Plus data-icon="inline-start" />
-                  Tạo đơn hàng
+                  Táº¡o Ä‘Æ¡n hÃ ng
                 </Button>
               </Link>
             </div>
@@ -338,7 +321,7 @@ const unpaidRevenue =
         <div className="mb-4 grid grid-cols-2 gap-2 sm:mb-6 sm:grid-cols-2 sm:gap-4 md:grid-cols-4">
           <Card className="min-w-0">
             <CardContent className="p-3 sm:p-5">
-              <p className="text-xs text-slate-400 sm:text-sm">Tổng đơn</p>
+              <p className="text-xs text-slate-400 sm:text-sm">Tá»•ng Ä‘Æ¡n</p>
               <h2 className="mt-1 text-xl font-bold sm:mt-2 sm:text-3xl">
                 {activeOrders.length}
               </h2>
@@ -347,7 +330,7 @@ const unpaidRevenue =
 
           <Card className="min-w-0">
             <CardContent className="p-3 sm:p-5">
-              <p className="text-xs text-slate-400 sm:text-sm">Tổng giá trị</p>
+              <p className="text-xs text-slate-400 sm:text-sm">Tá»•ng giÃ¡ trá»‹</p>
               <h2 className="mt-1 truncate text-lg font-bold sm:mt-2 sm:text-3xl">
                 {formatVND(
                   activeOrders.reduce(
@@ -361,7 +344,7 @@ const unpaidRevenue =
 
           <Card className="min-w-0">
             <CardContent className="p-3 sm:p-5">
-              <p className="text-xs text-green-400 sm:text-sm">Đã thu</p>
+              <p className="text-xs text-green-400 sm:text-sm">ÄÃ£ thu</p>
               <h2 className="mt-1 truncate text-lg font-bold text-green-400 sm:mt-2 sm:text-3xl">
                 {formatVND(
                   activeOrders.reduce(
@@ -375,7 +358,7 @@ const unpaidRevenue =
 
           <Card className="min-w-0">
             <CardContent className="p-3 sm:p-5">
-              <p className="text-xs text-red-400 sm:text-sm">Công nợ</p>
+              <p className="text-xs text-red-400 sm:text-sm">CÃ´ng ná»£</p>
               <h2 className="mt-1 truncate text-lg font-bold text-red-400 sm:mt-2 sm:text-3xl">
                 {formatVND(
                   activeOrders.reduce(
@@ -395,7 +378,7 @@ const unpaidRevenue =
               <div className="relative min-w-0 lg:col-span-5">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Tìm theo mã đơn hoặc tên khách..."
+                  placeholder="TÃ¬m theo mÃ£ Ä‘Æ¡n hoáº·c tÃªn khÃ¡ch..."
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value)
@@ -439,25 +422,21 @@ const unpaidRevenue =
                 >
                   <SelectTrigger className="h-10 min-w-0 w-full text-[11px] sm:h-11 sm:text-sm">
                     <Filter className="size-3.5 shrink-0 text-muted-foreground" />
-                    <SelectValue placeholder="Trạng thái">
-                      {ORDER_STATUS_FILTER_LABELS[status] || 'Trạng thái'}
-                    </SelectValue>
+                    <SelectValue placeholder="Tráº¡ng thÃ¡i" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectItem value="all">
-                        Tất cả trạng thái
-                      </SelectItem>
-
-                      {(Object.keys(ORDER_STATUS_LABELS) as OrderStatus[]).map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {ORDER_STATUS_LABELS[s]}
-                        </SelectItem>
-                      ))}
-
-                      <SelectItem value="stock_due">
-                        Nợ hàng
-                      </SelectItem>
+                      <SelectItem value="all">Táº¥t cáº£ tráº¡ng thÃ¡i</SelectItem>
+                      {(Object.keys(ORDER_STATUS_LABELS) as OrderStatus[]).map(
+                        (s) => (
+                          <SelectItem key={s} value={s}>
+                            {ORDER_STATUS_LABELS[s]}
+                          </SelectItem>
+        <SelectItem value="stock_due">
+          📦 Nợ hàng
+        </SelectItem>
+                        )
+                      )}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
@@ -470,18 +449,12 @@ const unpaidRevenue =
                   }}
                 >
                   <SelectTrigger className="h-10 min-w-0 w-full text-[11px] sm:h-11 sm:text-sm">
-                    <SelectValue placeholder="Thanh toán">
-                      {paymentFilter === 'paid'
-                        ? 'Đã thanh toán'
-                        : paymentFilter === 'unpaid'
-                          ? 'Chưa thanh toán'
-                          : 'Tất cả thanh toán'}
-                    </SelectValue>
+                    <SelectValue placeholder="Thanh toÃ¡n" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tất cả thanh toán</SelectItem>
-                    <SelectItem value="paid">Đã thanh toán</SelectItem>
-                    <SelectItem value="unpaid">Chưa thanh toán</SelectItem>
+                    <SelectItem value="all">Táº¥t cáº£ thanh toÃ¡n</SelectItem>
+                    <SelectItem value="paid">ÄÃ£ thanh toÃ¡n</SelectItem>
+                    <SelectItem value="unpaid">ChÆ°a thanh toÃ¡n</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -495,8 +468,8 @@ const unpaidRevenue =
             <CardContent className="p-0">
 
               {/* MOBILE UI
-                  Chỉ thay cách hiển thị.
-                  Toàn bộ process/status/cancel/detail/copy vẫn giữ nguyên. */}
+                  Chá»‰ thay cÃ¡ch hiá»ƒn thá»‹.
+                  ToÃ n bá»™ process/status/cancel/detail/copy váº«n giá»¯ nguyÃªn. */}
               <div className="block sm:hidden">
                 {paginatedOrders.map((o) => {
                   const debt = Math.max(
@@ -519,7 +492,7 @@ const unpaidRevenue =
 
                           <div className="mt-1 flex min-w-0 items-center gap-2">
                             <div className="min-w-0 truncate text-sm font-semibold text-white">
-                              {o.customers?.full_name || 'Khách lẻ'}
+                              {o.customers?.full_name || 'KhÃ¡ch láº»'}
                             </div>
 
                             <span
@@ -539,7 +512,7 @@ const unpaidRevenue =
                           </div>
 
                           <div className="mt-1 text-[10px] text-slate-500">
-                            {o.order_items?.length || 0} SP ·{' '}
+                            {o.order_items?.length || 0} SP Â·{' '}
                             {formatDateTime(o.created_at)}
                           </div>
                         </div>
@@ -554,32 +527,16 @@ const unpaidRevenue =
                           </div>
 
                           <div className="text-[10px] font-medium text-red-400">
-                            Nợ: {formatVND(debt)}
+                            Ná»£: {formatVND(debt)}
                           </div>
                         </div>
                       </div>
 
-                      {/* Status — GIỮ NGUYÊN PROCESS */}
+                      {/* Status â€” GIá»® NGUYÃŠN PROCESS */}
                       <div className="mt-3">
                         <Select
-                          value={
-                            o.fulfillment_status === 'waiting_stock'
-                              ? 'stock_due'
-                              : o.status
-                          }
+                          value={o.status}
                           onValueChange={async (value) => {
-
-                            if (value === 'stock_due') {
-                              await supabase
-                                .from('orders')
-                                .update({
-                                  fulfillment_status: 'waiting_stock',
-                                })
-                                .eq('id', o.id)
-
-                              loadOrders()
-                              return
-                            }
                             if (
                               value === 'cancelled' &&
                               o.status !== 'cancelled'
@@ -613,43 +570,17 @@ const unpaidRevenue =
                                     reference_type: 'ORDER_CANCEL',
                                     reference_id: o.order_code,
                                     created_by: 'ADMIN',
-                                    note: `Hủy đơn ${o.order_code}`,
+                                    note: `Há»§y Ä‘Æ¡n ${o.order_code}`,
                                   })
                               }
                             }
 
-                            const updateData: Record<string, any> = {
-
-
-                              status: value,
-
-
-                            }
-
-
-
-                            if (o.fulfillment_status === 'waiting_stock') {
-
-
-                              updateData.fulfillment_status = 'ready'
-
-
-                            }
-
-
-
                             await supabase
-
-
                               .from('orders')
-
-
-                              .update(updateData)
-
-
+                              .update({
+                                status: value,
+                              })
                               .eq('id', o.id)
-
-
 
                             loadOrders()
                           }}
@@ -660,9 +591,7 @@ const unpaidRevenue =
                           >
                             <span className={cn(
                               "flex items-center gap-2 truncate font-medium",
-                              o.fulfillment_status === 'waiting_stock'
-                                ? "text-orange-300"
-                                : ORDER_STATUS_UI[o.status]?.text || "text-slate-300"
+                              ORDER_STATUS_UI[o.status]?.text || "text-slate-300"
                             )}>
                               <span
                                 className={cn(
@@ -676,76 +605,40 @@ const unpaidRevenue =
 
                           <SelectContent>
                             <SelectItem value="pending">
-
                               <span className="flex items-center gap-2 text-amber-300">
-
-                                <span className="size-1.5 shrink-0 rounded-full bg-amber-400" />
-
-                                Chờ xác nhận
-
+                                <span className="size-1.5 rounded-full bg-amber-400" />
+                                Chá» xÃ¡c nháº­n
                               </span>
-
                             </SelectItem>
                             <SelectItem value="processing">
-
                               <span className="flex items-center gap-2 text-sky-300">
-
-                                <span className="size-1.5 shrink-0 rounded-full bg-sky-400" />
-
-                                Đang xử lý
-
+                                <span className="size-1.5 rounded-full bg-sky-400" />
+                                Äang xá»­ lÃ½
                               </span>
-
                             </SelectItem>
                             <SelectItem value="shipping">
-
                               <span className="flex items-center gap-2 text-violet-300">
-
-                                <span className="size-1.5 shrink-0 rounded-full bg-violet-400" />
-
-                                Đang giao
-
+                                <span className="size-1.5 rounded-full bg-violet-400" />
+                                Äang giao
                               </span>
-
                             </SelectItem>
                             <SelectItem value="completed">
-
                               <span className="flex items-center gap-2 text-emerald-300">
-
-                                <span className="size-1.5 shrink-0 rounded-full bg-emerald-400" />
-
-                                Hoàn thành
-
+                                <span className="size-1.5 rounded-full bg-emerald-400" />
+                                HoÃ n thÃ nh
                               </span>
-
                             </SelectItem>
                             <SelectItem value="cancelled">
-
                               <span className="flex items-center gap-2 text-rose-300">
-
-                                <span className="size-1.5 shrink-0 rounded-full bg-rose-400" />
-
-                                Đã hủy
-
+                                <span className="size-1.5 rounded-full bg-rose-400" />
+                                ÄÃ£ há»§y
                               </span>
-
                             </SelectItem>
-
-
-                            <SelectItem value="stock_due">
-
-                              <span className="flex items-center gap-2 text-orange-300">
-  <span className="size-1.5 shrink-0 rounded-full bg-orange-400" />
-  Nợ hàng
-</span>
-
-                            </SelectItem>
-
-                            </SelectContent>
+                          </SelectContent>
                         </Select>
                       </div>
 
-                      {/* ACTIONS — GIỮ NGUYÊN */}
+                      {/* ACTIONS â€” GIá»® NGUYÃŠN */}
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         <button
                           type="button"
@@ -755,11 +648,8 @@ const unpaidRevenue =
                           }}
                           className="h-9 rounded-lg bg-cyan-500/10 px-3 text-xs font-semibold text-cyan-400 active:bg-cyan-500/20"
                         >
-                          <Eye className="mr-1 inline-block size-3.5" />
-
-                          Xem
-
-                          </button>
+                          ðŸ‘ Xem
+                        </button>
 
                         <button
                           type="button"
@@ -769,18 +659,15 @@ const unpaidRevenue =
                           }}
                           className="h-9 rounded-lg bg-yellow-500/10 px-3 text-xs font-semibold text-yellow-400 active:bg-yellow-500/20"
                         >
-                          <Copy className="mr-1 inline-block size-3.5" />
-
-                          Copy
-
-                          </button>
+                          ðŸ“„ Copy
+                        </button>
                       </div>
                     </div>
                   )
                 })}
               </div>
 
-              {/* DESKTOP UI — GIỮ BẢNG CŨ */}
+              {/* DESKTOP UI â€” GIá»® Báº¢NG CÅ¨ */}
               <div className="hidden overflow-x-auto sm:block">
                 <Table>
                   <TableHeader>
@@ -812,7 +699,7 @@ const unpaidRevenue =
 
                         <TableCell className="max-w-[190px]">
                           <div className="truncate font-medium">
-                            {o.customers?.full_name || 'Khách lẻ'}
+                            {o.customers?.full_name || 'KhÃ¡ch láº»'}
                           </div>
                         </TableCell>
 
@@ -848,7 +735,7 @@ const unpaidRevenue =
                               {formatVND(Number(o.paid_amount || 0))}
                             </div>
                             <div className="text-xs font-medium text-red-500">
-                              Nợ:{' '}
+                              Ná»£:{' '}
                               {formatVND(
                                 Math.max(
                                   Number(o.total_amount || 0) -
@@ -860,29 +747,13 @@ const unpaidRevenue =
                           </div>
                         </TableCell>
 
-                        {/* STATUS — GIỮ NGUYÊN PROCESS */}
+                        {/* STATUS â€” GIá»® NGUYÃŠN PROCESS */}
                         <TableCell
                           onClick={(e) => e.stopPropagation()}
                         >
                           <Select
-                            value={
-                            o.fulfillment_status === 'waiting_stock'
-                              ? 'stock_due'
-                              : o.status
-                          }
-                          onValueChange={async (value) => {
-
-                            if (value === 'stock_due') {
-                              await supabase
-                                .from('orders')
-                                .update({
-                                  fulfillment_status: 'waiting_stock',
-                                })
-                                .eq('id', o.id)
-
-                              loadOrders()
-                              return
-                            }
+                            value={o.status}
+                            onValueChange={async (value) => {
                               if (
                                 value === 'cancelled' &&
                                 o.status !== 'cancelled'
@@ -918,43 +789,17 @@ const unpaidRevenue =
                                       reference_type: 'ORDER_CANCEL',
                                       reference_id: o.order_code,
                                       created_by: 'ADMIN',
-                                      note: `Hủy đơn ${o.order_code}`,
+                                      note: `Há»§y Ä‘Æ¡n ${o.order_code}`,
                                     })
                                 }
                               }
 
-                              const updateData: Record<string, any> = {
-
-
-                                status: value,
-
-
-                              }
-
-
-
-                              if (o.fulfillment_status === 'waiting_stock') {
-
-
-                                updateData.fulfillment_status = 'ready'
-
-
-                              }
-
-
-
                               await supabase
-
-
                                 .from('orders')
-
-
-                                .update(updateData)
-
-
+                                .update({
+                                  status: value,
+                                })
                                 .eq('id', o.id)
-
-
 
                               loadOrders()
                             }}
@@ -962,9 +807,7 @@ const unpaidRevenue =
                             <SelectTrigger className="h-8 w-[150px] border-0 bg-slate-800">
                               <span className={cn(
                                 "flex items-center gap-2 text-sm font-medium",
-                                o.fulfillment_status === 'waiting_stock'
-                                  ? "text-orange-300"
-                                  : ORDER_STATUS_UI[o.status]?.text || "text-slate-300"
+                                ORDER_STATUS_UI[o.status]?.text || "text-slate-300"
                               )}>
                                 <span
                                   className={cn(
@@ -972,80 +815,27 @@ const unpaidRevenue =
                                     ORDER_STATUS_UI[o.status]?.dot || "bg-slate-400"
                                   )}
                                 />
-                                {o.fulfillment_status === 'waiting_stock'
-                                  ? 'Nợ hàng'
-                                  : ORDER_STATUS_UI[o.status]?.label || o.status}
+                                {ORDER_STATUS_UI[o.status]?.label || o.status}
                               </span>
                             </SelectTrigger>
 
                             <SelectContent>
                               <SelectItem value="pending">
-
-                                <span className="flex items-center gap-2 text-amber-300">
-
-                                  <span className="size-1.5 shrink-0 rounded-full bg-amber-400" />
-
-                                  Chờ xác nhận
-
-                                </span>
-
+                                ðŸŸ¡ Chá» xÃ¡c nháº­n
                               </SelectItem>
                               <SelectItem value="processing">
-
-                                <span className="flex items-center gap-2 text-sky-300">
-
-                                  <span className="size-1.5 shrink-0 rounded-full bg-sky-400" />
-
-                                  Đang xử lý
-
-                                </span>
-
+                                ðŸ”µ Äang xá»­ lÃ½
                               </SelectItem>
                               <SelectItem value="shipping">
-
-                                <span className="flex items-center gap-2 text-violet-300">
-
-                                  <span className="size-1.5 shrink-0 rounded-full bg-violet-400" />
-
-                                  Đang giao
-
-                                </span>
-
+                                ðŸŸ£ Äang giao
                               </SelectItem>
                               <SelectItem value="completed">
-
-                                <span className="flex items-center gap-2 text-emerald-300">
-
-                                  <span className="size-1.5 shrink-0 rounded-full bg-emerald-400" />
-
-                                  Hoàn thành
-
-                                </span>
-
+                                ðŸŸ¢ HoÃ n thÃ nh
                               </SelectItem>
                               <SelectItem value="cancelled">
-
-                                <span className="flex items-center gap-2 text-rose-300">
-
-                                  <span className="size-1.5 shrink-0 rounded-full bg-rose-400" />
-
-                                  Đã hủy
-
-                                </span>
-
+                                ðŸ”´ ÄÃ£ há»§y
                               </SelectItem>
-
-
-                              <SelectItem value="stock_due">
-
-                                <span className="flex items-center gap-2 text-orange-300">
-  <span className="size-1.5 shrink-0 rounded-full bg-orange-400" />
-  Nợ hàng
-</span>
-
-                              </SelectItem>
-
-                              </SelectContent>
+                            </SelectContent>
                           </Select>
                         </TableCell>
 
@@ -1062,22 +852,16 @@ const unpaidRevenue =
                               onClick={() => openOrder(o)}
                               className="rounded-lg px-3 py-1.5 text-cyan-400 hover:bg-cyan-500/10"
                             >
-                              <Eye className="mr-1 inline-block size-3.5" />
-
-                              Xem
-
-                              </button>
+                              ðŸ‘ Xem
+                            </button>
 
                             <button
                               type="button"
                               onClick={() => duplicateOrder(o)}
                               className="rounded-lg px-3 py-1.5 text-yellow-400 hover:bg-yellow-500/10"
                             >
-                              <Copy className="mr-1 inline-block size-3.5" />
-
-                              Copy
-
-                              </button>
+                              ðŸ“„ Copy
+                            </button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1093,15 +877,15 @@ const unpaidRevenue =
                     <EmptyMedia variant="icon">
                       <Search />
                     </EmptyMedia>
-                    <EmptyTitle>Không tìm thấy đơn hàng</EmptyTitle>
+                    <EmptyTitle>KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n hÃ ng</EmptyTitle>
                     <EmptyDescription>
-                      Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.
+                      Thá»­ thay Ä‘á»•i bá»™ lá»c hoáº·c tá»« khÃ³a tÃ¬m kiáº¿m.
                     </EmptyDescription>
                   </EmptyHeader>
                 </Empty>
               )}
 
-              {/* PAGINATION — process giữ nguyên, chỉ responsive UI */}
+              {/* PAGINATION â€” process giá»¯ nguyÃªn, chá»‰ responsive UI */}
               <div className="flex items-center justify-center gap-2 border-t border-slate-800 p-3 sm:p-4">
                 <Button
                   variant="outline"
@@ -1109,7 +893,7 @@ const unpaidRevenue =
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(currentPage - 1)}
                 >
-                  <ChevronLeft className="size-4" />
+                  â†
                 </Button>
 
                 <span className="text-xs text-slate-400 sm:hidden">
@@ -1149,7 +933,7 @@ const unpaidRevenue =
                     setCurrentPage(currentPage + 1)
                   }
                 >
-                  <ChevronRight className="size-4" />
+                  â†’
                 </Button>
               </div>
             </CardContent>
