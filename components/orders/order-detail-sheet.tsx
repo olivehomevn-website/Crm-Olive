@@ -520,8 +520,10 @@ window.onload = function () {
 
       <SheetContent
         className="
-          !w-[420px]
-          !max-w-[420px]
+          !w-[calc(100vw-16px)]
+          !max-w-none
+          sm:!w-[420px]
+          sm:!max-w-[420px]
           p-0
           overflow-hidden
         "
@@ -555,7 +557,9 @@ window.onload = function () {
               <SheetTitle
                 className="
                   text-blue-500
-                  text-2xl
+                  text-lg
+                  leading-tight
+                  sm:text-2xl
                 "
               >
                 THÔNG TIN ĐƠN HÀNG
@@ -589,11 +593,14 @@ window.onload = function () {
 
           <div
             className="
+              min-w-0
               flex-1
+              overflow-x-hidden
               overflow-y-auto
-              p-3
+              p-2.5
               text-sm
               custom-scroll
+              sm:p-3
             "
           >
 
@@ -808,7 +815,9 @@ window.onload = function () {
 
               <div
                 className="
+                  min-w-0
                   space-y-2
+                  break-words
                   text-sm
                 "
               >
@@ -925,16 +934,20 @@ window.onload = function () {
                     key={item.id}
                     className="
                       flex
+                      min-w-0
+                      items-start
+                      gap-3
                       justify-between
                       border-b
                       py-2
                     "
                   >
 
-                    <div>
+                    <div className="min-w-0 flex-1">
 
                       <div
                         className="
+                          break-words
                           font-medium
                         "
                       >
@@ -985,7 +998,9 @@ window.onload = function () {
 
                     <div
                       className="
+                        shrink-0
                         whitespace-nowrap
+                        text-right
                       "
                     >
                       {Number(

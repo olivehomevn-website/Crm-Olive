@@ -1847,6 +1847,7 @@ sm:p-3
       findCustomer(customerCode)
     }
     className="
+      h-9
       w-full
       rounded-md
       border
@@ -1855,7 +1856,9 @@ sm:p-3
       px-2.5
       py-1.5
       text-sm
+      leading-none
       text-cyan-400
+      sm:h-11
       sm:px-3
       sm:py-2
       font-semibold
@@ -1898,7 +1901,7 @@ sm:p-3
           type="button"
           onClick={() => setCustomerTitle(title)}
           className={`
-            min-h-11
+            h-9
             rounded-lg
             border
             text-sm
@@ -1931,7 +1934,7 @@ sm:p-3
       placeholder="Tên khách hàng"
       value={customerName}
       onChange={(e) => setCustomerName(e.target.value.toUpperCase())}
-      className="uppercase min-h-11 w-full rounded-lg border border-slate-700 bg-slate-900 py-3 pl-12 pr-4 text-sm outline-none focus:border-cyan-500"
+      className="uppercase h-9 w-full rounded-lg border border-slate-700 bg-slate-900 py-1.5 pl-12 pr-4 text-sm outline-none focus:border-cyan-500 sm:h-11 sm:py-3"
     />
   </div>
 </div>
@@ -1962,13 +1965,13 @@ sm:p-3
       border
       border-slate-700
       bg-slate-900
-      min-h-9
+      h-9
       py-1.5
       pl-10
       pr-3
       text-sm
       sm:mt-2
-      sm:min-h-11
+      sm:h-11
       sm:py-2.5
       sm:pl-12
       sm:pr-4
@@ -1995,7 +1998,7 @@ sm:p-3
         type="button"
         onClick={() => setCustomerSource(source.value)}
         className={`
-          min-h-10
+          h-9
           rounded-lg
           border
           px-1
@@ -2054,7 +2057,7 @@ sm:p-3
       setProvinceOpen((open) => !open)
       setProvinceSearch('')
     }}
-    className="flex min-h-9 w-full items-center justify-between rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-left text-xs sm:min-h-11 sm:px-3 sm:py-3 sm:text-sm text-white outline-none transition hover:border-slate-600 focus:border-cyan-500 sm:min-h-11 sm:py-3"
+    className="flex h-9 w-full items-center justify-between rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-left text-xs text-white outline-none transition hover:border-slate-600 focus:border-cyan-500 sm:h-11 sm:px-3 sm:py-3 sm:text-sm"
   >
     <span className={selectedProvince ? 'text-white' : 'text-slate-400'}>
       {provinces.find(
@@ -2201,6 +2204,7 @@ sm:p-3
       placeholder="0"
       className="
         flex-1
+        h-9
         rounded-md
         border
         border-slate-700
@@ -2208,6 +2212,7 @@ sm:p-3
         px-2.5
         py-1.5
         text-sm
+        sm:h-11
         sm:px-3
         sm:py-2
       "
@@ -2221,6 +2226,7 @@ sm:p-3
         )
       }
       className="
+        h-9
         w-20
         rounded-md
         border
@@ -2229,6 +2235,7 @@ sm:p-3
         px-2
         py-1.5
         text-sm
+        sm:h-11
         sm:w-24
         sm:px-3
         sm:py-2
@@ -2254,7 +2261,7 @@ sm:p-3
         onChange={(e) =>
           setShippingFee(Number(e.target.value))
         }
-        className="mt-0.5 w-full rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-sm sm:mt-1 sm:px-3 sm:py-2.5 sm:text-sm"
+        className="mt-0.5 h-9 w-full rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-sm sm:mt-1 sm:h-11 sm:px-3 sm:py-2.5 sm:text-sm"
       />
     </div>
 
@@ -2277,7 +2284,7 @@ sm:p-3
             type="button"
             onClick={() => setPaymentMethod(method.value)}
             className={`
-              min-h-11
+              h-9
               rounded-lg
               border
               px-2
@@ -2285,7 +2292,7 @@ sm:p-3
               font-semibold
               transition
               active:scale-[0.98]
-              sm:min-h-10
+              sm:h-11
               sm:text-xs
               ${
                 paymentMethod === method.value
@@ -2320,7 +2327,7 @@ sm:p-3
             type="button"
             onClick={() => setShippingProvider(provider.value)}
             className={`
-              min-h-11
+              h-9
               rounded-lg
               border
               px-2
@@ -2328,7 +2335,7 @@ sm:p-3
               font-semibold
               transition
               active:scale-[0.98]
-              sm:min-h-10
+              sm:h-11
               sm:text-xs
               ${
                 shippingProvider === provider.value
@@ -2361,7 +2368,7 @@ sm:p-3
             type="button"
             onClick={() => setShippingMethod(method.value)}
             className={`
-              min-h-11
+              h-9
               rounded-lg
               border
               px-2
@@ -2369,7 +2376,7 @@ sm:p-3
               font-semibold
               transition
               active:scale-[0.98]
-              sm:min-h-10
+              sm:h-11
               sm:text-xs
               ${
                 shippingMethod === method.value
@@ -2397,7 +2404,7 @@ sm:p-3
     onChange={(e) =>
       setPaidAmount(Number(e.target.value))
     }
-    className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2.5 text-base sm:text-sm"
+    className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm sm:h-11 sm:py-2.5"
   />
 </div>
 
@@ -2711,8 +2718,9 @@ hover:bg-cyan-600
     <div><strong>SĐT:</strong> {customerPhone || '-'}</div>
     <div><strong>Nguồn:</strong> {customerSource || '-'}</div>
     <div><strong>ĐVVC:</strong> {shippingProvider || '-'}</div>
-    <div><strong>Giao hàng:</strong> {shippingMethod === 'express' ? 'Giao Hỏa Tốc' : 'GH Tiêu Chuẩn'}</div>
+    <div><strong>Hình thức:</strong> {shippingMethod === 'express' ? 'Giao Hỏa Tốc' : 'GH Tiêu Chuẩn'}</div>
     <div><strong>Thanh toán:</strong> {paymentMethod || '-'}</div>
+    <div><strong>Đã thanh toán:</strong> {paidAmount.toLocaleString('vi-VN')} đ</div>
     <div style={{ gridColumn: '1 / -1' }}><strong>Địa chỉ giao hàng:</strong> {customerAddress || '-'}</div>
     <div style={{ gridColumn: '1 / -1' }}><strong>Note:</strong> {customerNote || '-'}</div>
   </div>

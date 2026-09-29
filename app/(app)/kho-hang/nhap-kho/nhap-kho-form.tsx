@@ -12,6 +12,7 @@ import {
   PackagePlus,
   Search,
 } from 'lucide-react'
+import { AppHeader } from '@/components/app-header'
 import { supabase } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
@@ -367,14 +368,25 @@ export default function NhapKhoForm({
   }
 
   return (
-    <div className="w-full min-w-0 overflow-x-hidden px-3 pb-8 pt-3 sm:px-6 sm:pt-6">
+    <div className="box-border w-[calc(100%+32px)] min-w-0 -mx-4 overflow-x-hidden px-4 pb-8 pt-2 sm:mx-0 sm:w-full sm:px-6 sm:pt-6">
       {/* =====================================================
-          PAGE HEADER
+          GLOBAL APP HEADER
+          Sidebar + Search + Notifications + Avatar
+          Dùng chung cho toàn bộ ERP.
       ====================================================== */}
-      <div className="mb-4 sm:mb-6">
-        
+      <div className="-mx-4 sm:mx-0">
+        <AppHeader title="" />
+      </div>
 
-        <p className="mt-1 text-xs text-slate-400 sm:text-sm">
+      {/* PAGE TITLE + DESCRIPTION
+          Đặt bên dưới AppHeader để mobile có thứ tự:
+          Header → Nhập kho → mô tả → nội dung
+      */}
+      <div className="mb-4 pt-4 sm:mb-6 sm:pt-5">
+        <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+          Nhập kho
+        </h1>
+        <p className="mt-2 text-xs text-slate-400 sm:text-sm">
           Chọn sản phẩm và cập nhật số lượng nhập kho
         </p>
       </div>
@@ -382,19 +394,15 @@ export default function NhapKhoForm({
       {/* =====================================================
           PRODUCT SELECTOR
       ====================================================== */}
-      <section className="rounded-2xl border border-slate-800 bg-slate-950 p-3 shadow-sm sm:p-5">
+      <section className="box-border w-full min-w-0 rounded-2xl border border-slate-800 bg-slate-950 p-2.5 shadow-sm sm:p-5">
         <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-base font-bold text-white sm:text-lg">
-              Tìm sản phẩm
-            </h2>
+          
 
-            <p className="mt-0.5 text-[11px] text-slate-500 sm:text-xs">
-              {filteredProducts.length} sản phẩm
-            </p>
+           
           </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+          <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex sm:items-center">
             <Link
               href="/san-pham/them-moi"
               className="
@@ -485,8 +493,8 @@ export default function NhapKhoForm({
         </div>
 
         {/* PRODUCT GRID */}
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4">
-          {visibleProducts.map((product) => {
+        <div className="mt-3 grid w-full min-w-0 grid-cols-2 gap-2 sm:mt-4 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4">
+          {visibleProducts.map((product, index) => {
             const isSelected =
               selectedProduct?.id === product.id
 
@@ -502,6 +510,7 @@ export default function NhapKhoForm({
                   handleSelectProduct(product)
                 }
                 className={`
+                  ${index >= 4 ? 'max-sm:hidden' : ''}
                   min-w-0
                   rounded-xl
                   border
@@ -509,6 +518,7 @@ export default function NhapKhoForm({
                   text-left
                   transition
                   active:scale-[0.98]
+                  group
                   sm:p-3
                   ${
                     isSelected
@@ -517,27 +527,26 @@ export default function NhapKhoForm({
                   }
                 `}
               >
-                <div className="flex items-center gap-2 sm:block">
-                  <img
-                    src={
-                      product.image_url ||
-                      '/placeholder.jpg'
-                    }
-                    alt={product.name}
-                    className="
-                      h-12
-                      w-12
-                      shrink-0
-                      rounded-lg
-                      border
-                      border-slate-700
-                      object-cover
-                      sm:h-20
-                      sm:w-full
-                    "
-                  />
+                <div className="min-w-0">
+                  <div className="aspect-square w-full overflow-hidden rounded-lg border border-slate-700 bg-slate-950">
+                    <img
+                      src={
+                        product.image_url ||
+                        '/placeholder.jpg'
+                      }
+                      alt={product.name}
+                      className="
+                        h-full
+                        w-full
+                        object-cover
+                        transition-transform
+                        duration-200
+                        group-hover:scale-[1.02]
+                      "
+                    />
+                  </div>
 
-                  <div className="min-w-0 sm:mt-2">
+                  <div className="mt-2 min-w-0">
                     <p className="line-clamp-2 text-[11px] font-semibold leading-4 text-white sm:text-sm">
                       {product.name}
                     </p>
@@ -586,7 +595,7 @@ export default function NhapKhoForm({
             <button
               type="button"
               onClick={() => setShowAll(true)}
-              className="mt-3 flex min-h-10 w-full items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-xs font-semibold text-cyan-400 transition hover:border-cyan-500 sm:hidden"
+              className="mt-3 hidden min-h-10 w-full items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-xs font-semibold text-cyan-400 transition hover:border-cyan-500 sm:flex"
             >
               Xem thêm {filteredProducts.length - 8} sản phẩm
             </button>
@@ -603,27 +612,19 @@ export default function NhapKhoForm({
         >
           <div className="grid min-w-0 gap-4 lg:grid-cols-5 lg:gap-5">
             {/* PRODUCT DETAIL */}
-            <section className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:p-5 lg:col-span-2">
+            <section className="min-w-0 w-full rounded-2xl border border-slate-800 bg-slate-900 p-2.5 sm:p-5 lg:col-span-2">
               <div className="flex items-start gap-3">
-                <img
-                  src={
-                    imageUrl ||
-                    selectedProduct.image_url ||
-                    '/placeholder.jpg'
-                  }
-                  alt={selectedProduct.name}
-                  className="
-                    h-20
-                    w-20
-                    shrink-0
-                    rounded-xl
-                    border
-                    border-slate-700
-                    object-cover
-                    sm:h-28
-                    sm:w-28
-                  "
-                />
+                <div className="aspect-square w-24 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-slate-950 sm:w-32">
+                  <img
+                    src={
+                      imageUrl ||
+                      selectedProduct.image_url ||
+                      '/placeholder.jpg'
+                    }
+                    alt={selectedProduct.name}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
 
                 <div className="min-w-0 flex-1">
                   <h2 className="line-clamp-3 text-sm font-bold leading-5 text-white sm:text-lg sm:leading-6">
@@ -774,7 +775,7 @@ export default function NhapKhoForm({
             </section>
 
             {/* IMPORT FORM */}
-            <section className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:p-5 lg:col-span-3">
+            <section className="min-w-0 w-full rounded-2xl border border-slate-800 bg-slate-900 p-2.5 sm:p-5 lg:col-span-3">
               <div className="mb-4 flex items-center gap-2">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400">
                   <PackagePlus className="h-5 w-5" />
@@ -792,7 +793,7 @@ export default function NhapKhoForm({
               </div>
 
               {/* PRICE */}
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <Field
                   label="Giá nhập mới"
                   value={costPrice}
