@@ -2318,9 +2318,10 @@ sm:p-3
       <div className="mt-1 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[
           { value: 'GHN', label: 'GHN' },
-          { value: 'GHTK', label: 'GHTK' },
+          { value: 'GHTK', label: 'Ahamove' },
           { value: 'J&T', label: 'J&T' },
           { value: 'Viettel', label: 'Viettel' },
+          
         ].map((provider) => (
           <button
             key={provider.value}

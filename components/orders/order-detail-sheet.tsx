@@ -757,27 +757,10 @@ window.onload = function () {
                 gap-2
               "
             >
-              <div
-                className="
-                  flex
-                  size-7
-                  items-center
-                  justify-center
-                  rounded-lg
-                  bg-cyan-500/10
-                  text-cyan-400
-                "
-              >
-                <WalletCards className="size-4" />
-              </div>
+             
 
               <div>
-                <h2 className="text-sm font-semibold text-white">
-                  Thông tin đơn hàng
-                </h2>
-                <p className="text-[11px] text-slate-500">
-                  Tổng quan thanh toán
-                </p>
+                
               </div>
             </div>
 
@@ -1263,15 +1246,7 @@ window.onload = function () {
 
                 <div>
 
-                  <div
-                    className="
-                      text-xs
-                      text-slate-400
-                    "
-                  >
-                    Khách đã được thông báo
-                  </div>
-
+                 
                   <div
                     className={`
                       mt-0.5
@@ -1642,27 +1617,8 @@ window.onload = function () {
                   "
                 >
 
-                  <span
-                    className="
-                      text-[11px]
-                      font-medium
-                      uppercase
-                      tracking-wide
-                      text-slate-500
-                    "
-                  >
-                    Thu tiền
-                  </span>
-
-                  <span
-                    className="
-                      text-[11px]
-                      text-cyan-400
-                    "
-                  >
-                    <CircleDollarSign className="size-3.5" />
-                    Nhập số tiền
-                  </span>
+                  
+                 
 
                 </div>
 
