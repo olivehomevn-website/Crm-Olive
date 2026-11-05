@@ -102,6 +102,11 @@ export function OrderDetailSheet({
   ] = useState<'A4' | 'A5'>('A5')
 
   const [
+    printLanguage,
+    setPrintLanguage,
+  ] = useState<'vi' | 'en'>('vi')
+
+  const [
     showPrintSettings,
     setShowPrintSettings,
   ] = useState(false)
@@ -315,7 +320,8 @@ export function OrderDetailSheet({
    */
 
   const handlePrint = (
-    paperSize: 'A4' | 'A5'
+    paperSize: 'A4' | 'A5',
+    language: 'vi' | 'en'
   ) => {
 
     const printContents =
@@ -1757,6 +1763,39 @@ window.onload = function () {
               </div>
 
 
+              {/* INVOICE LANGUAGE */}
+              <div className="mb-5">
+                <div className="mb-2 text-sm font-medium text-gray-700">
+                  Ngôn ngữ hóa đơn
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPrintLanguage('vi')}
+                    className={`rounded-xl border px-3 py-3 text-sm font-semibold transition ${
+                      printLanguage === 'vi'
+                        ? 'border-emerald-700 bg-emerald-50 text-emerald-800'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-400'
+                    }`}
+                  >
+                    Tiếng Việt
+                    {printLanguage === 'vi' ? ' ✓' : ''}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrintLanguage('en')}
+                    className={`rounded-xl border px-3 py-3 text-sm font-semibold transition ${
+                      printLanguage === 'en'
+                        ? 'border-emerald-700 bg-emerald-50 text-emerald-800'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-400'
+                    }`}
+                  >
+                    English
+                    {printLanguage === 'en' ? ' ✓' : ''}
+                  </button>
+                </div>
+              </div>
+
               {/* PAPER SIZE */}
 
               <div
@@ -2007,7 +2046,8 @@ window.onload = function () {
                     setTimeout(() => {
 
                       handlePrint(
-                        printSize
+                        printSize,
+                        printLanguage
                       )
 
                     }, 150)
@@ -2054,6 +2094,7 @@ window.onload = function () {
           <InvoicePrint
             order={order}
             paperSize={printSize}
+            language={printLanguage}
           />
 
         </div>
