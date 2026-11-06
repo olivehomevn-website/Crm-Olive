@@ -29,7 +29,21 @@ export default function InvoicePrint({
   )
   const date = (v: any) => {
     if (!v) return '-'
-    try { return new Date(v).toLocaleDateString(isEnglish ? 'en-US' : 'vi-VN') } catch { return '-' }
+    try {
+      const parsed = new Date(v)
+      if (Number.isNaN(parsed.getTime())) return '-'
+
+      if (isEnglish) {
+        const year = parsed.getFullYear()
+        const month = String(parsed.getMonth() + 1).padStart(2, '0')
+        const day = String(parsed.getDate()).padStart(2, '0')
+        return `${year}/${month}/${day}`
+      }
+
+      return parsed.toLocaleDateString('vi-VN')
+    } catch {
+      return '-'
+    }
   }
   const address = (value: any): string => {
     if (!value) return ''
@@ -225,9 +239,8 @@ export default function InvoicePrint({
         minHeight: isA5 ? '180mm' : '175mm',
         height: isA5 ? '180mm' : 'auto',
         boxSizing: 'border-box',
-        padding: isA5 ? '7mm 6mm 6mm 10mm' : '10mm 9mm 9mm 14mm',
+        padding: isA5 ? '7mm 6mm 6mm 6mm' : '10mm 9mm 9mm 9mm',
         position: 'relative',
-        borderLeft: isA5 ? '5mm solid #3D8A70' : '6mm solid #3D8A70',
         background: '#fff',
         color: '#111',
         fontFamily: mainFont,
@@ -258,13 +271,13 @@ export default function InvoicePrint({
               objectPosition: 'left center',
             }}
           />
-          <div style={{ marginTop: '3px', fontSize: s.tiny, color: '#555' }}>Furniture · Lighting · Living</div>
+          <div style={{ marginTop: '2px', fontSize: s.tiny, color: '#444' }}>Website: olivelivingvn.com</div>
+          <div style={{ marginTop: '2px', fontSize: s.tiny, color: '#444' }}>Email: support@olivelivingvn.com</div>
+          <div style={{ marginTop: '2px', fontSize: s.tiny, color: '#444' }}>SĐT: 0799379179</div>
           <div style={{ marginTop: '3px', maxWidth: isA5 ? '76mm' : '100mm', fontSize: s.tiny, lineHeight: 1.25, color: '#444' }}>
-            {isEnglish ? 'Address:' : 'Địa chỉ:'} KDC Khang Điền Bình Chánh, Đường Trịnh Quang Nghị,
-            X. Phong Phú, H. Bình Chánh. HCM
-          </div>
-          <div style={{ marginTop: '2px', fontSize: s.tiny, color: '#444' }}>olivelivingvn.com · hello@olivelivingvn.com</div>
+            {isEnglish ? 'Address:' : 'Địa chỉ:'} KDC Phong Phú 4, Xã Bình Hưng. HCM</div>
         </div>
+        
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: s.tiny, fontWeight: 700, color: '#666', letterSpacing: '.8px' }}>{isEnglish ? 'SALES INVOICE' : 'SALES INVOICE'}</div>
           <div style={{ marginTop: '1px', fontSize: s.title, fontWeight: 700, lineHeight: 1 }}>{isEnglish ? 'INVOICE' : 'HÓA ĐƠN'}</div>
@@ -343,113 +356,111 @@ export default function InvoicePrint({
         </table>
       </div>
 
-      {/* TOTALS - FULL WIDTH, BALANCED SUMMARY */}
+      {/* TOTALS - CLEAN & BALANCED SUMMARY */}
       <div
         style={{
           marginTop: isA5 ? '4mm' : '5mm',
           width: isA5 ? '68%' : '48%',
           marginLeft: 'auto',
           boxSizing: 'border-box',
-          padding: isA5 ? '3mm 3mm' : '4mm 5mm',
+          padding: isA5 ? '3mm' : '4mm 5mm',
           background: '#F1F6F3',
-          borderRadius: '0',
+          borderRadius: 0,
           color: '#24291F',
         }}
       >
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr auto',
-            alignItems: 'center',
-            columnGap: '12px',
-            rowGap: isA5 ? '5px' : '7px',
-            fontSize: s.total,
-          }}
-        >
-          <span style={{ color: '#626858' }}>{isEnglish ? 'Subtotal' : 'Tạm tính'}</span>
-          <strong style={{ textAlign: 'right' }}>{money(subtotal)}</strong>
-
-          {discount > 0 && (
-            <>
-              <span style={{ color: '#626858' }}>{isEnglish ? 'Discount' : 'Giảm giá'}</span>
-              <strong style={{ textAlign: 'right' }}>- {money(discount)}</strong>
-            </>
-          )}
-
-          {shippingFee > 0 && (
-            <>
-              <span style={{ color: '#626858' }}>{isEnglish ? 'Shipping fee' : 'Phí vận chuyển'}</span>
-              <strong style={{ textAlign: 'right' }}>{money(shippingFee)}</strong>
-            </>
-          )}
-
-          <span style={{ color: '#626858' }}>{isEnglish ? 'Payment' : 'Thanh toán'}</span>
-          <strong style={{ textAlign: 'right', textTransform: 'uppercase' }}>
-            {displayedPaymentMethod}
-          </strong>
-        </div>
-
-        <div
-          style={{
-            marginTop: isA5 ? '8px' : '10px',
-            paddingTop: isA5 ? '7px' : '9px',
-            display: 'grid',
-            gridTemplateColumns: '1fr auto',
-            alignItems: 'center',
-            columnGap: '12px',
-            rowGap: isA5 ? '6px' : '8px',
-          }}
-        >
-          <strong style={{ fontSize: s.total, letterSpacing: '.2px' }}>
-            {isEnglish ? 'GRAND TOTAL' : 'TỔNG CỘNG'}
-          </strong>
-          <strong
-            style={{
-              fontSize: s.grand,
-              color: '#24291F',
-              textAlign: 'right',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {money(totalAmount)}
-          </strong>
-
-          <span style={{ fontSize: s.total, color: '#626858' }}>
-            {isEnglish ? 'Amount paid' : 'Đã thanh toán'}
-          </span>
-          <strong style={{ fontSize: s.total, textAlign: 'right' }}>
-            {money(paidAmount)}
-          </strong>
-        </div>
-
-        <div
-          style={{
-            marginTop: isA5 ? '8px' : '10px',
-            padding: isA5 ? '6px 0 2px' : '8px 0 2px',
-            borderRadius: 0,
-            background: 'transparent',
-            color: '#24291F',
-            borderTop: '1px solid #AAB8B0',
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '10px',
+            flexDirection: 'column',
+            gap: isA5 ? '7px' : '9px',
           }}
         >
-          <strong style={{ fontSize: s.total, letterSpacing: '.25px' }}>
-            {isEnglish ? 'BALANCE DUE' : 'CÒN THANH TOÁN'}
-          </strong>
-          <strong
+          {/* SUBTOTAL */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', minHeight: isA5 ? '15px' : '18px' }}>
+            <span style={{ fontSize: s.total, fontWeight: 400, color: '#626858' }}>
+              {isEnglish ? 'Subtotal' : 'Tạm tính'}
+            </span>
+            <span style={{ fontSize: isA5 ? '9px' : '10px', fontWeight: 500, textAlign: 'right', whiteSpace: 'nowrap' }}>
+              {money(subtotal)}
+            </span>
+          </div>
+
+          {/* DISCOUNT */}
+          {discount > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', minHeight: isA5 ? '15px' : '18px' }}>
+              <span style={{ fontSize: s.total, fontWeight: 400, color: '#626858' }}>
+                {isEnglish ? 'Discount' : 'Giảm giá'}
+              </span>
+              <span style={{ fontSize: isA5 ? '9px' : '10px', fontWeight: 500, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                - {money(discount)}
+              </span>
+            </div>
+          )}
+
+          {/* SHIPPING */}
+          {shippingFee > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', minHeight: isA5 ? '15px' : '18px' }}>
+              <span style={{ fontSize: s.total, fontWeight: 400, color: '#626858' }}>
+                {isEnglish ? 'Shipping fee' : 'Phí vận chuyển'}
+              </span>
+              <span style={{ fontSize: isA5 ? '9px' : '10px', fontWeight: 500, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                {money(shippingFee)}
+              </span>
+            </div>
+          )}
+
+          {/* GRAND TOTAL */}
+          <div
             style={{
-              fontFamily: pixelFont,
-              fontSize: isA5 ? '17px' : '20px',
-              fontWeight: 800,
-              whiteSpace: 'nowrap',
-              lineHeight: 1.1,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '12px',
+              minHeight: isA5 ? '17px' : '20px',
+              paddingTop: isA5 ? '7px' : '9px',
+              borderTop: '1px solid #AAB8B0',
             }}
           >
-            {money(remaining)}
-          </strong>
+            <strong style={{ fontSize: s.total, fontWeight: 700, letterSpacing: '.15px' }}>
+              {isEnglish ? 'GRAND TOTAL' : 'TỔNG CỘNG'}
+            </strong>
+            <strong style={{ fontSize: isA5 ? '10.5px' : '11.5px', fontWeight: 700, textAlign: 'right', whiteSpace: 'nowrap' }}>
+              {money(totalAmount)}
+            </strong>
+          </div>
+
+          {/* AMOUNT PAID */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', minHeight: isA5 ? '15px' : '18px' }}>
+            <strong style={{ fontSize: s.total, fontWeight: 600, color: '#626858' }}>
+              {isEnglish ? 'Amount paid' : 'Đã thanh toán'}
+            </strong>
+            <strong style={{ fontSize: isA5 ? '9px' : '10px', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>
+              {money(paidAmount)}
+            </strong>
+          </div>
+
+          {/* BALANCE DUE */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '12px',
+              minHeight: isA5 ? '19px' : '22px',
+              paddingTop: isA5 ? '7px' : '9px',
+              borderTop: '1px solid #AAB8B0',
+            }}
+          >
+            <strong style={{ fontSize: s.total, fontWeight: 900, letterSpacing: '.15px' }}>
+              {isEnglish ? 'BALANCE DUE' : 'CÒN THANH TOÁN'}
+            </strong>
+            <strong style={{ fontSize: isA5 ? '11.5px' : '12.5px', fontWeight: 900, textAlign: 'right', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
+              <span style={{ fontFamily: pixelFont, fontWeight: 900, WebkitTextStroke: '0.45px currentColor', paintOrder: 'stroke fill' }}>
+                {Number(remaining || 0).toLocaleString('vi-VN')} đ
+              </span>
+            </strong>
+          </div>
         </div>
       </div>
 
@@ -538,6 +549,8 @@ export default function InvoicePrint({
     OLIVE LIVING · Furniture · Lighting · Living
   </div>
 </div>
+
+
 
 </div>
   )
