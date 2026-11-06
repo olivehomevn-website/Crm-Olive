@@ -1083,11 +1083,11 @@ product_name:
 
   <PageShell title="Tạo đơn hàng mới">
 
-    <div className="grid gap-4 lg:grid-cols-12 lg:gap-6">
+    <div className="create-order-page grid min-w-0 gap-4 lg:grid-cols-12 lg:gap-6">
 
           {/* LEFT PANEL */}
 
-<div className="flex min-w-0 flex-col gap-4 lg:col-span-8">
+<div className="create-order-left flex min-w-0 flex-col gap-4 lg:col-span-8">
 
             <div >
 
@@ -1185,13 +1185,13 @@ product_name:
 
 </div>
 
-              <div className="mb-2 flex items-center justify-between gap-2 sm:mb-4 sm:flex-row">
+              <div className="create-order-stock-toolbar mb-2 flex items-center justify-between gap-2 sm:mb-4 sm:flex-row">
 
-                <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-300 sm:px-3 sm:py-1 sm:text-sm">
+                <span className="create-order-product-count rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-300 sm:px-3 sm:py-1 sm:text-sm">
                   {productsData.length} sản phẩm
                 </span>
 
-               <div className="flex max-w-full gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+               <div className="create-order-stock-filters flex max-w-full gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
   <button
     onClick={() => setStockFilter('all')}
@@ -1257,6 +1257,7 @@ product_name:
     border
     border-slate-800
     custom-scroll
+    create-order-product-list
   "
 >
 
@@ -1305,6 +1306,7 @@ product_name:
   <div
     key={item.id}
     className="
+      create-order-product-row
       grid
       grid-cols-[minmax(0,1fr)_auto]
       items-center
@@ -1321,7 +1323,7 @@ product_name:
     "
   >
     {/* PRODUCT */}
-    <div className="min-w-0 flex items-center gap-2.5 sm:col-span-5 sm:gap-4">
+    <div className="create-order-product-info min-w-0 flex items-center gap-2.5 sm:col-span-5 sm:gap-4">
       <img
         src={item.image_url || '/placeholder-product.png'}
         className="
@@ -1370,10 +1372,11 @@ product_name:
 
     {/* MOBILE: price + actions stay together with guaranteed spacing.
         DESKTOP: wrapper becomes grid contents so the desktop columns remain. */}
-    <div className="flex shrink-0 items-center justify-end gap-1.5 sm:contents">
+    <div className="create-order-product-actions flex shrink-0 items-center justify-end gap-1.5 sm:contents">
       {/* PRICE */}
       <div
         className="
+          create-order-product-price
           min-w-[78px]
           whitespace-nowrap
           text-right
@@ -1424,6 +1427,7 @@ product_name:
               )
             }}
             className="
+              create-order-stock-add
               flex
               h-9
               min-w-[42px]
@@ -1465,6 +1469,7 @@ product_name:
           onClick={() => addToCart(item)}
           disabled={Number(item.stock_quantity) <= 0}
           className="
+            create-order-add-button
             flex
             h-9
             w-9
@@ -1517,6 +1522,7 @@ product_name:
 
 <div
  className="
+create-order-cart
 mt-2
 rounded-xl
 border
@@ -1557,7 +1563,10 @@ sm:p-3
         hover:bg-red-500/10
       "
     >
-      🗑 Xóa tất cả
+      <span className="inline-flex items-center justify-center gap-1.5">
+        <Trash2 size={13} strokeWidth={1.8} />
+        <span>Xóa tất cả</span>
+      </span>
     </button>
   )}
 
@@ -1578,6 +1587,7 @@ sm:p-3
         <div
           key={item.product.id}
           className="
+            create-order-cart-row
             flex
             min-w-0
             items-center
@@ -1599,6 +1609,7 @@ sm:p-3
               '/placeholder-product.png'
             }
             className="
+              create-order-cart-image
               h-8
               w-8
               shrink-0
@@ -1611,7 +1622,7 @@ sm:p-3
           />
 
           {/* TÊN + SKU */}
-<div className="min-w-0 flex-1">
+<div className="create-order-cart-info min-w-0 flex-1">
 
   <div
     className="
@@ -1664,6 +1675,7 @@ sm:p-3
           {/* GIÁ */}
 <span
   className="
+    create-order-cart-price
     shrink-0
     whitespace-nowrap
     text-[14px]
@@ -1677,7 +1689,7 @@ sm:p-3
 </span>
 
           {/* SỐ LƯỢNG */}
-          <div className="flex shrink-0 items-center gap-0.5">
+          <div className="create-order-cart-quantity flex shrink-0 items-center gap-0.5">
             <button
               type="button"
               onClick={() =>
@@ -1756,7 +1768,7 @@ sm:p-3
               removeLine(item.product.id)
             }
             aria-label="Xóa sản phẩm"
-            className="
+            className="create-order-cart-remove
               flex
               h-8
               w-8
@@ -1813,10 +1825,11 @@ sm:p-3
 
 {/* RIGHT SIDEBAR */}
 
-<div className="min-w-0 scroll-mt-4 border-t border-slate-800 pt-4 lg:col-span-4 lg:border-0 lg:pt-0">
+<div className="create-order-right min-w-0 scroll-mt-4 border-t border-slate-800 pt-4 lg:col-span-4 lg:border-0 lg:pt-0">
 
   <div
     className="
+      create-order-customer
       rounded-xl
       border
       border-slate-800
@@ -2175,7 +2188,7 @@ sm:p-3
 {/* PAYMENT */}
 
 <div
-  className="rounded-xl border border-slate-700 bg-slate-900 p-2 sm:p-5"
+  className="create-order-payment rounded-xl border border-slate-700 bg-slate-900 p-2 sm:p-5"
   style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
 >
   
@@ -2411,7 +2424,7 @@ sm:p-3
 
 {/* TOTAL */}
 
-<div className="mt-3 rounded-md border border-slate-800 bg-slate-900/40 p-2.5 sm:mt-6 sm:p-4">
+<div className="create-order-total-summary mt-3 rounded-md border border-slate-800 bg-slate-900/40 p-2.5 sm:mt-6 sm:p-4">
   <div className="flex justify-between">
     <span>Tạm tính</span>
     <span>
@@ -2476,6 +2489,197 @@ sm:p-3
 
        </div> 
         
+
+        <style>{`
+          @media (max-width: 639px) {
+            .create-order-stock-toolbar {
+              display: flex !important;
+              align-items: center !important;
+              justify-content: space-between !important;
+              gap: 6px !important;
+              margin: 0 0 8px !important;
+              min-width: 0 !important;
+            }
+
+            .create-order-product-count {
+              flex: 0 0 auto !important;
+              padding: 4px 7px !important;
+              border: 1px solid rgba(100, 116, 139, .22);
+              font-size: 9px !important;
+              line-height: 1 !important;
+              white-space: nowrap !important;
+            }
+
+            .create-order-stock-filters {
+              flex: 1 1 auto !important;
+              display: flex !important;
+              justify-content: flex-end !important;
+              gap: 5px !important;
+              min-width: 0 !important;
+              overflow-x: auto !important;
+              padding: 0 0 2px !important;
+              scrollbar-width: none !important;
+            }
+
+            .create-order-stock-filters::-webkit-scrollbar {
+              display: none !important;
+            }
+
+            .create-order-stock-filters button {
+              flex: 0 0 auto !important;
+              min-height: 29px !important;
+              height: 29px !important;
+              padding: 0 9px !important;
+              border-radius: 999px !important;
+              font-size: 9px !important;
+              line-height: 1 !important;
+              font-weight: 650 !important;
+              white-space: nowrap !important;
+              letter-spacing: -.1px;
+            }
+
+            .create-order-page { display:flex !important; flex-direction:column !important; gap:14px !important; padding-bottom:calc(24px + env(safe-area-inset-bottom)) !important; }
+            .create-order-left,.create-order-right { display:flex !important; flex-direction:column !important; gap:14px !important; width:100% !important; min-width:0 !important; }
+            .create-order-left > div:first-child { display:flex; flex-direction:column; gap:10px; }
+            .create-order-left > div:first-child > div:first-child { display:grid !important; grid-template-columns:minmax(0,1fr) 112px !important; gap:8px !important; margin-bottom:0 !important; }
+            .create-order-left input,.create-order-left select,.create-order-right input,.create-order-right select,.create-order-right textarea { min-height:42px; border-radius:11px !important; font-size:13px !important; }
+
+            .create-order-left > div:first-child {
+              gap: 7px !important;
+            }
+
+            .create-order-left > div:first-child > div:first-child {
+              grid-template-columns: minmax(0, 1fr) 96px !important;
+              gap: 6px !important;
+            }
+
+            .create-order-left > div:first-child input,
+            .create-order-left > div:first-child select {
+              height: 36px !important;
+              min-height: 36px !important;
+              padding-top: 0 !important;
+              padding-bottom: 0 !important;
+              border-radius: 10px !important;
+              font-size: 11px !important;
+            }
+
+            .create-order-stock-toolbar {
+              gap: 5px !important;
+              margin-bottom: 6px !important;
+            }
+
+            .create-order-product-count {
+              padding: 3px 6px !important;
+              font-size: 8px !important;
+            }
+
+            .create-order-stock-filters {
+              gap: 4px !important;
+            }
+
+            .create-order-stock-filters button {
+              height: 27px !important;
+              min-height: 27px !important;
+              padding: 0 8px !important;
+              font-size: 8px !important;
+            }
+
+            .create-order-product-list { height:auto !important; min-height:0 !important; max-height:330px !important; overflow-y:auto !important; padding:7px !important; border-radius:16px !important; border:1px solid rgba(71,85,105,.55) !important; background:linear-gradient(160deg,rgba(15,23,42,.92),rgba(7,13,25,.96)); }
+            .create-order-product-row { display:grid !important; grid-template-columns:minmax(0,1fr) auto !important; align-items:center !important; gap:8px !important; min-height:76px !important; margin:0 0 7px !important; padding:10px !important; border:1px solid rgba(71,85,105,.42) !important; border-radius:13px !important; background:rgba(15,23,42,.82) !important; }
+            .create-order-product-row:last-child { margin-bottom:0 !important; }
+            .create-order-product-info { min-width:0 !important; gap:10px !important; }
+            .create-order-product-info img { width:48px !important; height:48px !important; border-radius:11px !important; border:1px solid rgba(148,163,184,.16); }
+            .create-order-product-info > div { min-width:0 !important; }
+            .create-order-product-info > div > div:first-child { display:-webkit-box; overflow:hidden; -webkit-box-orient:vertical; -webkit-line-clamp:2; font-size:12px !important; line-height:1.35 !important; }
+            .create-order-product-price { min-width:0 !important; grid-column:2 !important; grid-row:1 !important; align-self:start !important; padding-top:2px !important; font-size:12px !important; font-weight:800 !important; text-align:right !important; }
+            .create-order-product-actions { grid-column:2 !important; grid-row:1 !important; align-self:end !important; width:auto !important; gap:7px !important; }
+            .create-order-product-actions button {
+              min-height:29px !important;
+              min-width:29px !important;
+              width:29px !important;
+              height:29px !important;
+              padding:0 !important;
+              border-radius:9px !important;
+            }
+
+            .create-order-product-actions .create-order-stock-add {
+              width:auto !important;
+              min-width:34px !important;
+              height:26px !important;
+              min-height:26px !important;
+              padding:0 7px !important;
+              border-radius:8px !important;
+              font-size:9px !important;
+              line-height:1 !important;
+            }
+
+            .create-order-product-actions .create-order-add-button {
+              width:29px !important;
+              min-width:29px !important;
+              height:29px !important;
+              min-height:29px !important;
+              font-size:14px !important;
+              border-radius:9px !important;
+            }
+
+            .create-order-cart,.create-order-customer,.create-order-payment { width:100% !important; border-radius:16px !important; padding:14px !important; border-color:rgba(71,85,105,.55) !important; background:linear-gradient(155deg,rgba(15,23,42,.98),rgba(9,16,29,.98)) !important; box-shadow:0 10px 28px rgba(0,0,0,.18); }
+            .create-order-cart h2,.create-order-customer h2,.create-order-payment h2 { font-size:15px !important; line-height:1.3 !important; letter-spacing:-.2px; }
+
+            .create-order-cart-row { display:grid !important; grid-template-columns:46px minmax(0,1fr) auto !important; grid-template-areas:"image info price" "image quantity remove" !important; align-items:center !important; column-gap:9px !important; row-gap:7px !important; min-width:0 !important; padding:10px !important; border:1px solid rgba(71,85,105,.5) !important; border-radius:13px !important; background:rgba(2,6,23,.34) !important; }
+            .create-order-cart-image { grid-area:image !important; width:46px !important; height:46px !important; border-radius:11px !important; }
+            .create-order-cart-info { grid-area:info !important; min-width:0 !important; align-self:end !important; }
+            .create-order-cart-info > div:first-child { display:-webkit-box; overflow:hidden; -webkit-box-orient:vertical; -webkit-line-clamp:2; font-size:12px !important; line-height:1.35 !important; }
+            .create-order-cart-info > div:last-child { font-size:9px !important; line-height:1.2 !important; }
+            .create-order-cart-price { grid-area:price !important; align-self:end !important; font-size:12px !important; font-weight:800 !important; text-align:right !important; }
+            .create-order-cart-quantity { grid-area:quantity !important; justify-self:start !important; gap:5px !important; }
+            .create-order-cart-quantity button {
+              width:24px !important;
+              height:24px !important;
+              min-width:24px !important;
+              min-height:24px !important;
+              border-radius:7px !important;
+              padding:0 !important;
+              font-size:11px !important;
+            }
+            .create-order-cart-remove {
+              width:24px !important;
+              height:24px !important;
+              min-width:24px !important;
+              min-height:24px !important;
+              border-radius:7px !important;
+              padding:0 !important;
+              font-size:10px !important;
+              line-height:1 !important;
+            }
+            .create-order-cart-quantity span { min-width:18px !important; font-size:10px !important; }
+            .create-order-cart > div:first-child button {
+              min-height:25px !important;
+              height:25px !important;
+              padding:0 8px !important;
+              border-radius:8px !important;
+              font-size:9px !important;
+            }
+            .create-order-cart > div:first-child button svg {
+              width:11px !important;
+              height:11px !important;
+            }
+            .create-order-cart-remove { grid-area:remove !important; justify-self:end !important; }
+
+            .create-order-cart .border-t { margin-top:10px !important; padding-top:10px !important; border-color:rgba(71,85,105,.55) !important; }
+            .create-order-cart .border-t > div { font-size:13px !important; line-height:1.5 !important; }
+            .create-order-right { border-top:0 !important; padding-top:0 !important; }
+            .create-order-customer h2,.create-order-payment h2 { margin-bottom:12px !important; padding-bottom:10px; border-bottom:1px solid rgba(71,85,105,.42); }
+            .create-order-customer label,.create-order-payment label { display:block; margin-bottom:5px; font-size:11px !important; font-weight:600; color:#94a3b8 !important; }
+            .create-order-customer textarea { min-height:76px; padding:10px 11px !important; }
+            .create-order-customer button,.create-order-payment button { min-height:40px; border-radius:10px !important; }
+            .create-order-customer .grid.grid-cols-4 { gap:6px !important; }
+            .create-order-customer .grid.grid-cols-4 button { padding-left:4px !important; padding-right:4px !important; font-size:10px !important; }
+            .create-order-payment .create-order-total-summary { margin-top:12px !important; border-radius:13px !important; border-color:rgba(71,85,105,.5) !important; background:rgba(2,6,23,.38) !important; padding:13px !important; }
+            .create-order-payment .create-order-total-summary button { min-height:48px !important; margin-top:13px !important; border-radius:12px !important; font-size:14px !important; }
+            .create-order-page button { -webkit-tap-highlight-color:transparent; }
+          }
+        `}</style>
+
         {showConfirm && (
 
 <div
