@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { Plus, Search, Filter, Download, ExternalLink, Wallet, ClipboardList, BadgeCheck, HandCoins } from 'lucide-react'
+import { Plus, Search, Filter, Download, ExternalLink, Wallet, ClipboardList, BadgeCheck, HandCoins, ChartLine, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { PageShell, PageHeading } from '@/components/page-shell'
 import { FadeIn } from '@/components/motion'
 import {
@@ -112,6 +112,20 @@ function getVietnamDateKey(value: string | Date | null | undefined) {
     parts.find((item) => item.type === type)?.value || ''
 
   return `${part('year')}-${part('month')}-${part('day')}`
+}
+
+function getVietnamTodayKey() {
+  return getVietnamDateKey(new Date())
+}
+
+function shiftDateKey(dateKey: string, days: number) {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day + days))
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, '0'),
+    String(date.getUTCDate()).padStart(2, '0'),
+  ].join('-')
 }
 
 
@@ -225,6 +239,84 @@ function OrderStatusIcon({ status }: { status: string }) {
   }
 }
 
+function shiftDateByMonths(dateKey: string, months: number) {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  const targetMonthStart = new Date(Date.UTC(year, month - 1 + months, 1))
+  const lastDayOfTargetMonth = new Date(
+    Date.UTC(
+      targetMonthStart.getUTCFullYear(),
+      targetMonthStart.getUTCMonth() + 1,
+      0
+    )
+  ).getUTCDate()
+
+  const safeDay = Math.min(day, lastDayOfTargetMonth)
+  const shifted = new Date(
+    Date.UTC(
+      targetMonthStart.getUTCFullYear(),
+      targetMonthStart.getUTCMonth(),
+      safeDay
+    )
+  )
+
+  return [
+    shifted.getUTCFullYear(),
+    String(shifted.getUTCMonth() + 1).padStart(2, '0'),
+    String(shifted.getUTCDate()).padStart(2, '0'),
+  ].join('-')
+}
+
+function KpiPeriodChange({
+  current,
+  previous,
+  inverse = false,
+  enabled,
+}: {
+  current: number
+  previous: number
+  inverse?: boolean
+  enabled: boolean
+}) {
+  if (!enabled) {
+    return (
+      <p className="mt-2 text-[10px] leading-4 text-slate-500 sm:text-xs">
+        Chọn đủ ngày để so sánh
+      </p>
+    )
+  }
+
+  if (previous === 0 && current > 0) {
+    return (
+      <div className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-cyan-300 sm:text-xs">
+        <TrendingUp className="size-3.5" />
+        Mới phát sinh
+      </div>
+    )
+  }
+
+  const change = previous === 0 ? 0 : ((current - previous) / Math.abs(previous)) * 100
+  const roundedChange = Math.abs(change).toLocaleString('vi-VN', {
+    maximumFractionDigits: 1,
+  })
+  const isNeutral = Math.abs(change) < 0.05
+  const isIncrease = change > 0
+  const isPositive = inverse ? !isIncrease : isIncrease
+  const colorClass = isNeutral
+    ? 'text-slate-400'
+    : isPositive
+      ? 'text-emerald-400'
+      : 'text-rose-400'
+  const TrendIcon = isNeutral ? Minus : isIncrease ? TrendingUp : TrendingDown
+
+  return (
+    <div className={cn('mt-2 flex min-w-0 items-center gap-1 text-[10px] font-semibold sm:text-xs', colorClass)}>
+      <TrendIcon className="size-3.5 shrink-0" />
+      <span>{isIncrease ? '+' : isNeutral ? '' : '-'}{roundedChange}%</span>
+      <span className="truncate font-normal text-slate-500">so với cùng kỳ tháng trước</span>
+    </div>
+  )
+}
+
 export function OrdersListClient() {
 
   const router = useRouter()
@@ -237,6 +329,9 @@ const [fromDate, setFromDate] =
 
 const [toDate, setToDate] =
   useState('')
+
+const [datePreset, setDatePreset] =
+  useState<'today' | 'yesterday' | '7d' | '14d' | '30d' | 'custom'>('custom')
 
 const [paymentFilter, setPaymentFilter] =
   useState('all')
@@ -255,6 +350,31 @@ const [currentPage, setCurrentPage] =
   useState(1)
 
 const ITEMS_PER_PAGE = 10
+
+const applyDatePreset = (preset: 'today' | 'yesterday' | '7d' | '14d' | '30d' | 'custom') => {
+  setDatePreset(preset)
+  setCurrentPage(1)
+
+  if (preset === 'custom') return
+
+  const today = getVietnamTodayKey()
+  let from = today
+  let to = today
+
+  if (preset === 'yesterday') {
+    from = shiftDateKey(today, -1)
+    to = from
+  } else if (preset === '7d') {
+    from = shiftDateKey(today, -6)
+  } else if (preset === '14d') {
+    from = shiftDateKey(today, -13)
+  } else if (preset === '30d') {
+    from = shiftDateKey(today, -29)
+  }
+
+  setFromDate(from)
+  setToDate(to)
+}
 
 const loadOrders = async () => {
 
@@ -360,6 +480,93 @@ const activeOrders = filtered.filter(
   (o) => o.status !== 'cancelled'
 )
 
+// So sánh cùng khoảng ngày của tháng trước.
+// Chỉ bật khi người dùng đã chọn đủ ngày bắt đầu và kết thúc.
+const comparisonEnabled = Boolean(fromDate && toDate)
+const previousFromDate = comparisonEnabled
+  ? shiftDateByMonths(fromDate, -1)
+  : ''
+const previousToDate = comparisonEnabled
+  ? shiftDateByMonths(toDate, -1)
+  : ''
+
+const previousPeriodOrders = useMemo(() => {
+  if (!comparisonEnabled) return []
+
+  return orders.filter((o) => {
+    if (o.status === 'cancelled') return false
+
+    if (status === 'waiting_stock') {
+      if (o.fulfillment_status !== 'waiting_stock') return false
+    } else if (status !== 'all' && o.status !== status) {
+      return false
+    }
+
+    if (paymentFilter !== 'all' && o.payment_status !== paymentFilter) {
+      return false
+    }
+
+    if (
+      query &&
+      !(
+        String(o.order_code || '').toLowerCase().includes(query.toLowerCase()) ||
+        String(o.customers?.full_name || '').toLowerCase().includes(query.toLowerCase())
+      )
+    ) {
+      return false
+    }
+
+    const orderDateKey = getVietnamDateKey(o.created_at)
+    return Boolean(
+      orderDateKey &&
+      orderDateKey >= previousFromDate &&
+      orderDateKey <= previousToDate
+    )
+  })
+}, [
+  orders,
+  comparisonEnabled,
+  previousFromDate,
+  previousToDate,
+  status,
+  paymentFilter,
+  query,
+])
+
+const currentKpiValues = {
+  orders: activeOrders.length,
+  total: activeOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0),
+  paid: activeOrders.reduce((sum, o) => sum + Number(o.paid_amount || 0), 0),
+  debt: activeOrders.reduce((sum, o) => sum + Number(
+    o.remaining_amount ?? Math.max(
+      Number(o.total_amount || 0) - Number(o.paid_amount || 0),
+      0
+    )
+  ), 0),
+  average: activeOrders.length > 0
+    ? activeOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0) / activeOrders.length
+    : 0,
+}
+
+const previousKpiValues = {
+  orders: previousPeriodOrders.length,
+  total: previousPeriodOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0),
+  paid: previousPeriodOrders.reduce((sum, o) => sum + Number(o.paid_amount || 0), 0),
+  debt: previousPeriodOrders.reduce((sum, o) => sum + Number(
+    o.remaining_amount ?? Math.max(
+      Number(o.total_amount || 0) - Number(o.paid_amount || 0),
+      0
+    )
+  ), 0),
+  average: previousPeriodOrders.length > 0
+    ? previousPeriodOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0) / previousPeriodOrders.length
+    : 0,
+}
+
+const comparisonCaption = comparisonEnabled
+  ? `So với ${previousFromDate.split('-').reverse().join('/')} – ${previousToDate.split('-').reverse().join('/')}`
+  : 'Chọn ngày bắt đầu và kết thúc để so sánh'
+
   const totalPages = Math.ceil(
   filtered.length /
     ITEMS_PER_PAGE
@@ -448,7 +655,7 @@ const unpaidRevenue =
         />
 
         {/* KPI — GOLD THEME */}
-        <div className="mb-4 grid grid-cols-2 gap-2 sm:mb-6 sm:gap-4 md:grid-cols-4">
+        <div className="mb-4 grid grid-cols-2 gap-2 sm:mb-6 sm:gap-3 lg:grid-cols-3 2xl:grid-cols-5">
           <Card className="relative min-w-0 overflow-hidden border-cyan-400/20 bg-gradient-to-br from-cyan-400/[0.10] via-[#101923] to-[#0b141d] shadow-[0_8px_24px_rgba(34,211,238,0.045)]">
             <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-cyan-300/80 via-cyan-400 to-cyan-500/20" />
             <CardContent className="relative p-3 sm:p-5">
@@ -462,6 +669,32 @@ const unpaidRevenue =
                 {activeOrders.length.toLocaleString('vi-VN')}
               </h2>
               <p className="mt-1 text-[10px] text-cyan-100/45 sm:text-xs">Số đơn chưa bị hủy</p>
+              <KpiPeriodChange
+                current={currentKpiValues.orders}
+                previous={previousKpiValues.orders}
+                enabled={comparisonEnabled}
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="relative min-w-0 overflow-hidden border-violet-400/20 bg-gradient-to-br from-violet-400/[0.10] via-[#101923] to-[#0b141d] shadow-[0_8px_24px_rgba(139,92,246,0.045)]">
+            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-violet-300/80 via-violet-400 to-violet-500/20" />
+            <CardContent className="relative p-3 sm:p-5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-medium text-violet-100/75 sm:text-sm">Giá trị đơn TB</p>
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-violet-300/20 bg-violet-300/10 text-violet-300 sm:size-9">
+                  <ChartLine className="size-4 sm:size-[18px]" strokeWidth={1.9} />
+                </span>
+              </div>
+              <h2 className="mt-2 truncate text-xl font-bold tracking-tight text-violet-300 tabular-nums sm:mt-3 sm:text-3xl">
+                {formatVND(currentKpiValues.average)}
+              </h2>
+              <p className="mt-1 text-[10px] text-violet-100/45 sm:text-xs">Tổng giá trị chia số đơn</p>
+              <KpiPeriodChange
+                current={currentKpiValues.average}
+                previous={previousKpiValues.average}
+                enabled={comparisonEnabled}
+              />
             </CardContent>
           </Card>
 
@@ -478,6 +711,11 @@ const unpaidRevenue =
                 {formatVND(activeOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0))}
               </h2>
               <p className="mt-1 text-[10px] text-amber-100/45 sm:text-xs">Tổng giá trị đơn hàng</p>
+              <KpiPeriodChange
+                current={currentKpiValues.total}
+                previous={previousKpiValues.total}
+                enabled={comparisonEnabled}
+              />
             </CardContent>
           </Card>
 
@@ -494,6 +732,11 @@ const unpaidRevenue =
                 {formatVND(activeOrders.reduce((sum, o) => sum + Number(o.paid_amount || 0), 0))}
               </h2>
               <p className="mt-1 text-[10px] text-emerald-100/45 sm:text-xs">Tổng tiền khách đã thanh toán</p>
+              <KpiPeriodChange
+                current={currentKpiValues.paid}
+                previous={previousKpiValues.paid}
+                enabled={comparisonEnabled}
+              />
             </CardContent>
           </Card>
 
@@ -510,95 +753,153 @@ const unpaidRevenue =
                 {formatVND(activeOrders.reduce((sum, o) => sum + Number(o.remaining_amount || 0), 0))}
               </h2>
               <p className="mt-1 text-[10px] text-rose-100/45 sm:text-xs">Tổng số tiền khách còn nợ</p>
+              <KpiPeriodChange
+                current={currentKpiValues.debt}
+                previous={previousKpiValues.debt}
+                inverse
+                enabled={comparisonEnabled}
+              />
             </CardContent>
           </Card>
         </div>
+        <p className="-mt-2 mb-4 px-1 text-[10px] text-slate-500 sm:-mt-4 sm:mb-5 sm:text-xs">
+          {comparisonCaption}
+        </p>
 
         {/* FILTERS */}
         <FadeIn>
           <Card className="mb-4 overflow-hidden">
-            <CardContent className="grid min-w-0 gap-2 p-3 sm:gap-3 sm:p-4 lg:grid-cols-12 lg:items-center">
-              <div className="relative min-w-0 lg:col-span-5">
-                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Tìm theo mã đơn hoặc tên khách..."
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="h-10 w-full pl-9 text-xs sm:h-11 sm:text-sm"
-                />
-              </div>
+            <CardContent className="space-y-3 p-3 sm:p-4">
+              <div className="grid min-w-0 gap-2 lg:grid-cols-[minmax(220px,1fr)_auto_auto] lg:items-center">
+                <div className="relative min-w-0">
+                  <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Tìm theo mã đơn hoặc tên khách..."
+                    value={query}
+                    onChange={(e) => {
+                      setQuery(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                    className="h-10 w-full pl-9 text-xs sm:h-10 sm:text-sm"
+                  />
+                </div>
 
-              <div className="grid min-w-0 grid-cols-2 gap-2 lg:col-span-3">
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => {
-                    setFromDate(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  onClick={(e) => e.currentTarget.showPicker?.()}
-                  className="h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-[11px] text-white outline-none focus:border-cyan-500 sm:h-11 sm:px-3 sm:text-sm"
-                />
-
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => {
-                    setToDate(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  onClick={(e) => e.currentTarget.showPicker?.()}
-                  className="h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-[11px] text-white outline-none focus:border-cyan-500 sm:h-11 sm:px-3 sm:text-sm"
-                />
-              </div>
-
-              <div className="grid min-w-0 grid-cols-2 gap-2 lg:col-span-4">
-                <Select
-                  value={status}
-                  onValueChange={(value) => {
-                    setStatus(value)
-                    setCurrentPage(1)
-                  }}
-                >
-                  <SelectTrigger className="h-10 min-w-0 w-full text-[11px] sm:h-11 sm:text-sm">
-                    <Filter className="size-3.5 shrink-0 text-muted-foreground" />
-                    <SelectValue placeholder="Trạng thái" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                      {(Object.keys(ORDER_STATUS_LABELS) as OrderStatus[]).map(
-                        (s) => (
-                          <SelectItem key={s} value={s}>
-                            {ORDER_STATUS_LABELS[s]}
-                          </SelectItem>
-                        )
+                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6 lg:flex lg:items-center">
+                  {([
+                    ['today', 'Hôm nay'],
+                    ['yesterday', 'Hôm qua'],
+                    ['7d', '7 ngày'],
+                    ['14d', '14 ngày'],
+                    ['30d', '30 ngày'],
+                    ['custom', 'Tùy chọn'],
+                  ] as const).map(([value, label]) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      size="sm"
+                      variant={datePreset === value ? 'default' : 'outline'}
+                      onClick={() => applyDatePreset(value)}
+                      className={cn(
+                        'h-8 min-w-0 px-2 text-[10px] sm:px-2.5 sm:text-xs',
+                        datePreset === value
+                          ? 'bg-cyan-500 text-slate-950 hover:bg-cyan-400'
+                          : 'border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800'
                       )}
-                      <SelectItem value="waiting_stock">Nợ hàng</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
 
-                <Select
-                  value={paymentFilter}
-                  onValueChange={(value) => {
-                    setPaymentFilter(value)
-                    setCurrentPage(1)
-                  }}
-                >
-                  <SelectTrigger className="h-10 min-w-0 w-full text-[11px] sm:h-11 sm:text-sm">
-                    <SelectValue placeholder="Thanh toán" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tất cả thanh toán</SelectItem>
-                    <SelectItem value="paid">Đã thanh toán</SelectItem>
-                    <SelectItem value="unpaid">Chưa thanh toán</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="grid min-w-0 grid-cols-2 gap-2 lg:w-[300px]">
+                  <Select
+                    value={status}
+                    onValueChange={(value) => {
+                      setStatus(value)
+                      setCurrentPage(1)
+                    }}
+                  >
+                    <SelectTrigger className="h-9 min-w-0 w-full px-2 text-[11px] sm:text-xs">
+                      <Filter className="size-3.5 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 truncate text-left">
+                        {status === 'all'
+                          ? 'Tất cả trạng thái'
+                          : status === 'waiting_stock'
+                            ? 'Nợ hàng'
+                            : ORDER_STATUS_LABELS[status as OrderStatus] || 'Trạng thái'}
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                        {(Object.keys(ORDER_STATUS_LABELS) as OrderStatus[]).map(
+                          (s) => (
+                            <SelectItem key={s} value={s}>
+                              {ORDER_STATUS_LABELS[s]}
+                            </SelectItem>
+                          )
+                        )}
+                        <SelectItem value="waiting_stock">Nợ hàng</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={paymentFilter}
+                    onValueChange={(value) => {
+                      setPaymentFilter(value)
+                      setCurrentPage(1)
+                    }}
+                  >
+                    <SelectTrigger className="h-9 min-w-0 w-full px-2 text-[11px] sm:text-xs">
+                      <span className="min-w-0 truncate text-left">
+                        {paymentFilter === 'all'
+                          ? 'Tất cả thanh toán'
+                          : paymentFilter === 'paid'
+                            ? 'Đã thanh toán'
+                            : 'Chưa thanh toán'}
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả thanh toán</SelectItem>
+                      <SelectItem value="paid">Đã thanh toán</SelectItem>
+                      <SelectItem value="unpaid">Chưa thanh toán</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
+              {datePreset === 'custom' && (
+                <div className="flex flex-col gap-2 border-t border-slate-800 pt-3 sm:flex-row sm:items-center">
+                  <span className="text-[11px] font-medium text-slate-400">
+                    Khoảng thời gian
+                  </span>
+                  <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:max-w-[420px]">
+                    <input
+                      type="date"
+                      aria-label="Từ ngày"
+                      value={fromDate}
+                      onChange={(e) => {
+                        setFromDate(e.target.value)
+                        setCurrentPage(1)
+                      }}
+                      onClick={(e) => e.currentTarget.showPicker?.()}
+                      className="h-9 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-[11px] text-white outline-none focus:border-cyan-500 sm:px-3 sm:text-xs"
+                    />
+                    <input
+                      type="date"
+                      aria-label="Đến ngày"
+                      value={toDate}
+                      onChange={(e) => {
+                        setToDate(e.target.value)
+                        setCurrentPage(1)
+                      }}
+                      onClick={(e) => e.currentTarget.showPicker?.()}
+                      className="h-9 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-[11px] text-white outline-none focus:border-cyan-500 sm:px-3 sm:text-xs"
+                    />
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </FadeIn>
