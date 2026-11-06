@@ -149,6 +149,16 @@ const isDuplicate =
 const [customerPhone, setCustomerPhone] =
   useState('')
 
+// Existing customer detected by phone; the customer code is filled automatically.
+const [existingPhoneCustomer, setExistingPhoneCustomer] =
+  useState<any>(null)
+const [existingCustomerPurchaseTotal, setExistingCustomerPurchaseTotal] =
+  useState<number | null>(null)
+const [existingCustomerOrderCount, setExistingCustomerOrderCount] =
+  useState(0)
+const [phoneLookupLoading, setPhoneLookupLoading] =
+  useState(false)
+
 const [customerAddress, setCustomerAddress] =
   useState('')
 
@@ -173,49 +183,8 @@ const [discountType, setDiscountType] = useState<'percent' | 'amount'>('amount')
 const [discountValue, setDiscountValue] = useState(0)
 
 
-useEffect(() => {
-
-  if (
-    !customerName ||
-    customerPhone.length < 4
-  ) {
-    setCustomerCode('')
-    return
-  }
-
-  const lastName =
-  customerName
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
-    .split(' ')
-    .pop()
-    ?.substring(0, 2)
-    .toUpperCase() || 'KH'
-
-  const last4Phone =
-    customerPhone
-      .replace(/\D/g, '')
-      .slice(-4)
-
-  const now = new Date()
-
-  const dd =
-    String(now.getDate())
-      .padStart(2, '0')
-
-  const mm =
-    String(now.getMonth() + 1)
-      .padStart(2, '0')
-
-setCustomerCode(
-  `KH ${lastName}-${last4Phone}-${dd}${mm}`
-)
-
-}, [
-  customerName,
-  customerPhone,
-])
+// Không tự sinh lại mã KH khi đang nhập mã để tra cứu.
+ // Mã khách hàng mới được tạo khi lưu đơn hàng.
 
 const [shippingFee, setShippingFee] =
   useState(35000)
@@ -430,6 +399,7 @@ const loadOrder = async (id: string) => {
   //=========================
   // CUSTOMER
   //=========================
+  setCustomer(data.customers || null)
   setCustomerName(data.customers?.full_name || '')
   setCustomerTitle(data.customers?.customer_title === 'Chị' ? 'Chị' : 'Anh')
   setCustomerSource(data.customers?.customer_source || 'Website')
@@ -588,65 +558,278 @@ const total =
   discountAmount +
   shippingFee
 
-    const findCustomer = async (
-  keyword: string
-) => {
+    const normalizeVietnamPhone = (value: string) => {
+  let digits = String(value || '').replace(/\D/g, '')
+  if (digits.startsWith('84')) digits = `0${digits.slice(2)}`
+  return digits
+}
 
-  if (!keyword?.trim()) return
+const findExistingCustomerByPhone = async (phone: string) => {
+  const normalizedPhone = normalizeVietnamPhone(phone)
+  if (normalizedPhone.length < 9) return null
 
-  const last4 =
-    keyword.replace(/\D/g, '').slice(-4)
+  // Query by the last 4 digits, then compare normalized full phone suffixes in code.
+  // This also handles phone values stored with spaces, dashes, or +84 prefixes.
+  const suffix = normalizedPhone.slice(-9)
+  const searchDigits = normalizedPhone.slice(-4)
+  const { data, error } = await supabase
+    .from('customers')
+    .select('id, customer_code, customer_display_code, full_name, phone, customer_title, customer_source, customer_note, address')
+    .ilike('phone', `%${searchDigits}%`)
+    .limit(50)
 
-  console.log(
-    'SEARCH CUSTOMER:',
-    keyword,
-    last4
+  if (error) {
+    console.error('CHECK EXISTING CUSTOMER PHONE ERROR', error)
+    toast.error('Không thể kiểm tra số điện thoại trong danh sách khách hàng')
+    return null
+  }
+
+  const matches = (data || []).filter((item: any) => {
+    const savedPhone = normalizeVietnamPhone(item.phone || '')
+    return savedPhone.length >= 9 && savedPhone.slice(-9) === suffix
+  })
+
+  if (matches.length > 1) {
+    toast.error('Có nhiều hồ sơ trùng số điện thoại. Vui lòng kiểm tra dữ liệu khách hàng trước khi tạo đơn.')
+    return { duplicate: true, ambiguous: true, customer: null }
+  }
+
+  return matches.length === 1
+    ? { duplicate: true, ambiguous: false, customer: matches[0] }
+    : null
+}
+
+const loadExistingCustomerPurchaseSummary = async (customerId: string) => {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('total_amount, status')
+    .eq('customer_id', customerId)
+
+  if (error) {
+    console.error('LOAD CUSTOMER PURCHASE SUMMARY ERROR', error)
+    setExistingCustomerPurchaseTotal(null)
+    setExistingCustomerOrderCount(0)
+    return
+  }
+
+  // Chỉ tính các đơn không bị hủy; không cộng đơn hiện tại đang tạo.
+  const validOrders = (data || []).filter((order: any) => {
+    const status = String(order.status || '').toLowerCase()
+    return !['cancelled', 'canceled', 'cancel', 'đã hủy', 'da_huy'].includes(status)
+  })
+
+  setExistingCustomerPurchaseTotal(
+    validOrders.reduce(
+      (sum: number, order: any) => sum + Number(order.total_amount || 0),
+      0
+    )
   )
+  setExistingCustomerOrderCount(validOrders.length)
+}
 
-  const { data, error } =
-    await supabase
+const checkCustomerPhone = async (phone: string) => {
+  const normalizedPhone = normalizeVietnamPhone(phone)
+  if (normalizedPhone.length < 9) {
+    setExistingPhoneCustomer(null)
+    setExistingCustomerPurchaseTotal(null)
+    setExistingCustomerOrderCount(0)
+    return null
+  }
+
+  setPhoneLookupLoading(true)
+  try {
+    const result = await findExistingCustomerByPhone(phone)
+
+    if (result?.ambiguous) {
+      setExistingPhoneCustomer(null)
+        return null
+    }
+
+    const found = result?.customer || null
+    setExistingPhoneCustomer(found)
+
+    if (found) {
+      await loadExistingCustomerPurchaseSummary(found.id)
+      const fullCode = found.customer_display_code || found.customer_code || ''
+      // Tự điền mã KH vào ô Mã KH; admin không cần nhập lại.
+      setCustomerCode(fullCode)
+      setCustomerName(found.full_name || '')
+      setCustomerTitle(found.customer_title === 'Chị' ? 'Chị' : 'Anh')
+      setCustomerSource(found.customer_source || 'Website')
+      setCustomerNote(found.customer_note || '')
+      setCustomerAddress(found.address || '')
+      setStreetAddress(found.address || '')
+      setCustomer(found)
+      toast.success(`Đã tìm thấy khách hàng ${found.full_name || 'Chưa có tên'} · Mã KH: ${fullCode || 'Chưa có mã'}. Thông tin khách hàng đã được tự động truy xuất và điền vào biểu mẫu.`)
+    }
+
+    return found
+  } finally {
+    setPhoneLookupLoading(false)
+  }
+}
+
+// Tự động kiểm tra ngay khi admin nhập đủ số điện thoại hợp lệ.
+// Debounce ngắn để tránh gọi Supabase ở từng phím bấm.
+useEffect(() => {
+  const digits = normalizeVietnamPhone(customerPhone)
+
+  setExistingPhoneCustomer(null)
+  setExistingCustomerPurchaseTotal(null)
+  setExistingCustomerOrderCount(0)
+
+  if (digits.length < 9) {
+    setPhoneLookupLoading(false)
+    return
+  }
+
+  const timer = setTimeout(() => {
+    void checkCustomerPhone(customerPhone)
+  }, 400)
+
+  return () => clearTimeout(timer)
+}, [customerPhone])
+
+    const findCustomer = async (keyword: string) => {
+  const rawKeyword = keyword.trim()
+
+  if (!rawKeyword) return
+
+  const compactKeyword = rawKeyword.replace(/\\s+/g, '').toUpperCase()
+  const candidates = [...new Set([rawKeyword, compactKeyword])]
+
+  console.log('SEARCH CUSTOMER:', rawKeyword)
+
+  let matchedCustomer: any = null
+
+  // 1. Ưu tiên tìm mã KH chính xác, không dùng contains/ilike với ký tự %.
+  for (const code of candidates) {
+    const { data: byDisplayCode, error: displayCodeError } = await supabase
       .from('customers')
       .select('*')
-      .or(
-        `customer_display_code.ilike.%${keyword}%,phone.ilike.%${last4}%`
-      )
-      .limit(1)
+      .ilike('customer_display_code', code)
       .maybeSingle()
 
-  console.log('CUSTOMER', data)
-  console.log('ERROR', error)
+    if (displayCodeError) {
+      console.error('CUSTOMER DISPLAY CODE SEARCH ERROR', displayCodeError)
+      toast.error('Không thể tra cứu mã khách hàng')
+      return
+    }
 
-  if (!data) return
+    if (byDisplayCode) {
+      matchedCustomer = byDisplayCode
+      break
+    }
 
+    const { data: byCustomerCode, error: customerCodeError } = await supabase
+      .from('customers')
+      .select('*')
+      .ilike('customer_code', code)
+      .maybeSingle()
+
+    if (customerCodeError) {
+      console.error('CUSTOMER CODE SEARCH ERROR', customerCodeError)
+      toast.error('Không thể tra cứu mã khách hàng')
+      return
+    }
+
+    if (byCustomerCode) {
+      matchedCustomer = byCustomerCode
+      break
+    }
+  }
+
+  // 2. Hỗ trợ mã rút gọn: 2 chữ đầu + 4 số cuối, ví dụ UT9179.
+  // Mã lưu trong database có thể có tiền tố/ngày ở phía trước.
+  if (!matchedCustomer) {
+    const shortCustomerCode = rawKeyword.replace(/\s+/g, '').toUpperCase()
+
+    if (/^[A-Z]{2}\d{4}$/.test(shortCustomerCode)) {
+      const { data: displayMatches, error: displayError } = await supabase
+        .from('customers')
+        .select('*')
+        .ilike('customer_display_code', `%${shortCustomerCode}`)
+        .limit(2)
+
+      if (displayError) {
+        console.error('CUSTOMER SHORT DISPLAY CODE SEARCH ERROR', displayError)
+        toast.error('Không thể tra cứu mã khách hàng')
+        return
+      }
+
+      let shortCodeMatches = displayMatches || []
+
+      if (shortCodeMatches.length === 0) {
+        const { data: codeMatches, error: codeError } = await supabase
+          .from('customers')
+          .select('*')
+          .ilike('customer_code', `%${shortCustomerCode}`)
+          .limit(2)
+
+        if (codeError) {
+          console.error('CUSTOMER SHORT CODE SEARCH ERROR', codeError)
+          toast.error('Không thể tra cứu mã khách hàng')
+          return
+        }
+
+        shortCodeMatches = codeMatches || []
+      }
+
+      if (shortCodeMatches.length > 1) {
+        toast.warning('Mã rút gọn trùng với nhiều khách hàng. Vui lòng kiểm tra lại 2 chữ đầu và 4 số cuối.')
+        return
+      }
+
+      matchedCustomer = shortCodeMatches[0] || null
+    }
+  }
+
+  // 3. Vẫn hỗ trợ tra cứu chỉ bằng đúng 4 số cuối điện thoại.
+  if (!matchedCustomer && /^\d{4}$/.test(rawKeyword)) {
+    const digits = rawKeyword
+    const { data: phoneMatches, error: phoneError } = await supabase
+      .from('customers')
+      .select('*')
+      .ilike('phone', `%${digits}`)
+      .limit(2)
+
+    if (phoneError) {
+      console.error('CUSTOMER PHONE SEARCH ERROR', phoneError)
+      toast.error('Không thể tra cứu số điện thoại')
+      return
+    }
+
+    if ((phoneMatches || []).length > 1) {
+      toast.warning('Có nhiều khách hàng trùng 4 số cuối. Hãy nhập 2 chữ đầu + 4 số cuối mã KH, ví dụ UT9179.')
+      return
+    }
+
+    matchedCustomer = phoneMatches?.[0] || null
+  }
+
+  if (!matchedCustomer) {
+    toast.error('Không tìm thấy khách hàng khớp chính xác. Vui lòng kiểm tra lại mã KH hoặc 4 số cuối SĐT.')
+    return
+  }
+
+  // Tất cả thông tin bên dưới được lấy từ cùng một bản ghi khách hàng.
+  setCustomer(matchedCustomer)
   setCustomerCode(
-    data.customer_display_code || ''
+    matchedCustomer.customer_display_code ||
+    matchedCustomer.customer_code ||
+    rawKeyword
   )
-
   setCustomerTitle(
-    data.customer_title === 'Chị' ? 'Chị' : 'Anh'
+    matchedCustomer.customer_title === 'Chị' ? 'Chị' : 'Anh'
   )
+  setCustomerSource(matchedCustomer.customer_source || 'Website')
+  setCustomerNote(matchedCustomer.customer_note || '')
+  setCustomerName(matchedCustomer.full_name || '')
+  setCustomerPhone(matchedCustomer.phone || '')
+  setCustomerAddress(matchedCustomer.address || '')
+  setStreetAddress(matchedCustomer.address || '')
 
-  setCustomerSource(
-    data.customer_source || 'Website'
-  )
-
-  setCustomerNote(
-    data.customer_note || ''
-  )
-
-  setCustomerName(
-    data.full_name || ''
-  )
-
-  setCustomerPhone(
-    data.phone || ''
-  )
-
-  setCustomerAddress(
-    data.address || ''
-  )
-
-  setStreetAddress(data.address || '')
+  toast.success(`Đã tìm thấy khách hàng: ${matchedCustomer.full_name || 'Không có tên'}`)
 }
 
 
@@ -782,6 +965,36 @@ const total =
         return
       }
 
+      const normalizedCurrentPhone = normalizeVietnamPhone(customerPhone)
+      let matchedExistingPhoneCustomer = existingPhoneCustomer
+
+      if (normalizedCurrentPhone.length >= 9) {
+        const savedPhone = normalizeVietnamPhone(matchedExistingPhoneCustomer?.phone || '')
+
+        // Kiểm tra lại khi lưu để tránh tạo trùng khách hàng nếu tra cứu trực tiếp chưa kịp hoàn tất.
+        if (!matchedExistingPhoneCustomer || savedPhone.slice(-9) !== normalizedCurrentPhone.slice(-9)) {
+          const lookup = await findExistingCustomerByPhone(customerPhone)
+          if (lookup?.ambiguous) {
+            toast.error('Có nhiều khách hàng trùng số điện thoại. Vui lòng kiểm tra danh sách khách hàng.')
+            return
+          }
+
+          matchedExistingPhoneCustomer = lookup?.customer || null
+          if (matchedExistingPhoneCustomer) {
+            setExistingPhoneCustomer(matchedExistingPhoneCustomer)
+            await loadExistingCustomerPurchaseSummary(matchedExistingPhoneCustomer.id)
+            const matchedCode = matchedExistingPhoneCustomer.customer_display_code || matchedExistingPhoneCustomer.customer_code || ''
+            setCustomerCode(matchedCode)
+            setCustomerName(matchedExistingPhoneCustomer.full_name || '')
+            setCustomerTitle(matchedExistingPhoneCustomer.customer_title === 'Chị' ? 'Chị' : 'Anh')
+            setCustomerSource(matchedExistingPhoneCustomer.customer_source || 'Website')
+            setCustomerNote(matchedExistingPhoneCustomer.customer_note || '')
+            setCustomerAddress(matchedExistingPhoneCustomer.address || '')
+            setStreetAddress(matchedExistingPhoneCustomer.address || '')
+          }
+        }
+      }
+
 const now = new Date()
 
 const yy = String(now.getFullYear()).slice(-2)
@@ -796,12 +1009,23 @@ const orderCode = `DHOL-${yy}${mm}${dd}-${totalK}-${serial}`
 
 let customerId: string | null = null
 
-      const { data: existingCustomer } =
-        await supabase
+      let existingCustomer = matchedExistingPhoneCustomer
+
+      if (!existingCustomer) {
+        const { data: phoneLookupCustomer, error: phoneLookupError } = await supabase
           .from('customers')
           .select('*')
           .eq('phone', customerPhone)
           .maybeSingle()
+
+        if (phoneLookupError) {
+          console.error('CUSTOMER PHONE LOOKUP ERROR', phoneLookupError)
+          toast.error('Không thể kiểm tra khách hàng theo số điện thoại')
+          return
+        }
+
+        existingCustomer = phoneLookupCustomer
+      }
 
       if (existingCustomer) {
         customerId =
@@ -1851,11 +2075,11 @@ sm:p-3
   <div className="relative">
 
   <input
-    placeholder="Mã KH hoặc 4 số cuối SĐT"
+    placeholder="Mã KH (tự động điền khi tìm thấy SĐT)"
     value={customerCode}
-    onChange={(e) =>
+    onChange={(e) => {
       setCustomerCode(e.target.value)
-    }
+    }}
     onBlur={() =>
       findCustomer(customerCode)
     }
@@ -1968,9 +2192,9 @@ sm:p-3
   <input
     placeholder="Số điện thoại"
     value={customerPhone}
-    onChange={(e) =>
+    onChange={(e) => {
       setCustomerPhone(e.target.value)
-    }
+    }}
     className="
       mt-1.5
       w-full
@@ -1993,6 +2217,39 @@ sm:p-3
   />
 
 </div>
+
+{phoneLookupLoading && (
+  <p className="mt-2 text-xs text-cyan-400">Đang kiểm tra số điện thoại...</p>
+)}
+
+{existingPhoneCustomer && (
+  <div className="mt-2 space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+    <div className="flex items-start gap-2">
+      <Phone size={15} className="mt-0.5 shrink-0 text-amber-400" />
+      <div className="min-w-0">
+        <p className="text-xs font-bold text-amber-300">Số điện thoại đã được tạo</p>
+        <p className="mt-1 text-xs text-slate-200">
+          Khách hàng: <strong>{existingPhoneCustomer.full_name || 'Chưa có tên'}</strong>
+        </p>
+        <p className="text-xs text-slate-300">
+          Mã KH: <strong className="text-cyan-300">{existingPhoneCustomer.customer_display_code || existingPhoneCustomer.customer_code || 'Chưa có mã'}</strong>
+        </p>
+        <p className="mt-1 text-xs text-slate-200">
+          Đã mua hàng: <strong className="text-emerald-300">
+            {existingCustomerPurchaseTotal === null
+              ? 'Đang truy xuất...'
+              : `${existingCustomerPurchaseTotal.toLocaleString('vi-VN')} ₫`}
+          </strong>
+          {existingCustomerPurchaseTotal !== null && (
+            <span className="ml-1 text-slate-400">
+              ({existingCustomerOrderCount} đơn)
+            </span>
+          )}
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
 <div className="mt-3">
   <label className="mb-1 block text-[11px] font-medium text-slate-400">
